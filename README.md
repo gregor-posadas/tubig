@@ -1,16 +1,22 @@
 # Tubig
 
-A working prototype for DevEng 203 (UC Berkeley, Fall 2026) by Gregor Posadas.
+**Know what your water provider owes you.** A working prototype for DevEng 203 (UC Berkeley, Fall 2026) by Gregor Posadas.
 
-Tubig lets a household in the Philippines:
+Live site: https://gregor-posadas.github.io/tubig/
 
-1. find its barangay and see the service standards its water provider must meet,
-2. describe the service it actually gets,
-3. see the gap (met, not met, needs checking, or no rule at all), and
-4. turn that gap into a complaint letter, a call script and the right office to contact.
+Tubig helps a household in the Philippines:
 
-It also shows each water district's public record: LWUA and COA data, and news-reported complaints.
+1. **See what it's owed.** Find a barangay, match it to its water provider, and see every service standard that applies, with the law or rule it comes from, or "no rule found."
+2. **Describe its service.** Seven plain questions on hours, pressure, quality, outages, complaints, billing and connections.
+3. **See the gap.** Each answer is checked against the rule: met, not met, needs checking, or no rule exists.
+4. **Act on it.** A complaint letter that cites the rule, a phone script, and the offices to contact, in order.
 
-Everything runs in the browser. Nothing a user enters is stored. The chosen place name is sent to OpenStreetMap Nominatim to place it on the map.
+It also has an explorer for all 554 water districts with their public record (LWUA, COA, news-reported complaints).
 
-Data are preliminary and under human verification. Not legal advice.
+## Privacy
+
+Everything runs in the browser. There are no accounts and nothing a user types is sent to a server run by this project. Progress is saved only in the browser's local storage. Place names (or, with "Use my location", coordinates) are sent to OpenStreetMap Nominatim to place them on the map.
+
+## Data
+
+`data/` holds preliminary extracts from the author's research datasets: a service-obligations inventory, a water-district crosswalk (LWUA, NWRB, COA), news-reported complaints, and the Mabalacat City Water District audit record, plus the PSA PSGC (3Q 2026). They are under human verification. Not legal advice.
