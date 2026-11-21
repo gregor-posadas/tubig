@@ -573,7 +573,7 @@ Contact: [phone or email]`;
       <tr><td>First 10 m³ (minimum)</td><td class="num">${peso(tf.min)}</td></tr>
       ${(tf.blocks || []).map(b => `<tr><td>${b.to == null ? `${b.from} m³ and up` : `${b.from} to ${b.to} m³`}</td><td class="num">${peso(b.rate)} per m³</td></tr>`).join('')}</tbody></table></div>
       <p class="src-line">Residential, ½-inch meter. Latest rate LWUA has on record${tf.effective ? `, approved ${esc(fmtDate(tf.effective))}` : ''}. Source: ${tf.url ? `<a href="${esc(tf.url)}" target="_blank" rel="noopener">${esc(tf.source)}</a>` : esc(tf.source || '')}.</p>
-      ${jvOp() ? `<div class="callout info">${I.info}<p>Your district is run with ${esc(jvOp().replace(/ \(.*\)$/, ''))}. Rates under a joint venture may be newer than what LWUA has posted. Ask the district for its current approved schedule.</p></div>` : ''}` : '';
+      ${tf.note ? `<div class="callout info">${I.info}<p>${esc(tf.note)}</p></div>` : jvOp() ? `<div class="callout info">${I.info}<p>Your district is run with ${esc(jvOp().replace(/ \(.*\)$/, ''))}. Rates under a joint venture may be newer than what LWUA has posted. Ask the district for its current approved schedule.</p></div>` : ''}` : '';
     render(`<button class="back" id="back">${I.left}Rules</button>
       <h2 class="h-title">Check your bill</h2>
       <p class="h-sub">${esc(S.ptype === 'wd' && w ? w.n : providerName())}</p>
