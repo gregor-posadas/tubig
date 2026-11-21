@@ -1,125 +1,455 @@
 {
-  "_about": "Household-facing summary of the Benchmarks tab of Gregor Posadas's PH Water Service Obligations Inventory (preliminary, Nov 2026). Status: binding = binding, official text read; unconfirmed = binding but not yet confirmed from official text; target = national target or design guide, not binding; none = no binding rule found.",
-  "providers": {
-    "wd": {"name": "Water district", "plain": "A local government-owned water utility, created under PD 198 and overseen by LWUA."},
-    "mwss": {"name": "Metro Manila concessionaire", "plain": "Manila Water or Maynilad, private companies running MWSS's system under a concession agreement."},
-    "private": {"name": "Private utility (NWRB-regulated)", "plain": "A private water company holding a Certificate of Public Convenience from the National Water Resources Board."},
-    "lgu": {"name": "LGU-run utility", "plain": "A water system run directly by the city or municipal government."},
-    "community": {"name": "Community system", "plain": "A barangay waterworks association, rural waterworks association or cooperative."}
+ "_about": "Household-facing summary of the Benchmarks tab of Gregor Posadas's PH Water Service Obligations Inventory (preliminary, Nov 2026). Status: binding = binding, official text read; unconfirmed = binding but not yet confirmed from official text; target = national target or design guide, not binding; none = no binding rule found.",
+ "providers": {
+  "wd": {
+   "name": "Water district",
+   "plain": "A local government-owned water utility, created under PD 198 and overseen by LWUA."
   },
-  "dimensions": [
-    {
-      "id": "hours", "group": "check", "title": "Hours of water each day",
-      "question": "How many hours a day you should have water at the tap",
-      "rules": {
-        "wd": {"status": "none", "text": "No minimum. Each district sets its own target for round-the-clock supply as a performance-bonus indicator.", "cite": "LWUA-DBM JMC 2023-1, p. 13", "url": "https://www.dbm.gov.ph/wp-content/uploads/Issuances/2023/Joint-Memorandum-Circular/LWD-DBM-JMC-NO-2023-1.pdf", "ids": "SE-08", "min": null},
-        "mwss": {"status": "binding", "text": "24 hours a day.", "cite": "Revised Concession Agreement, Sec. 5.1.2", "url": "https://ro.mwss.gov.ph/wp-content/uploads/2022/01/REVISED-CA-FOR-MAYNILAD-18-MAY-2021.pdf", "ids": "CO-20, SE-40", "min": 24},
-        "private": {"status": "binding", "text": "At least 12 hours a day.", "cite": "NWRB MC 2019-001 (2018 tariff rules), p. 10", "url": "https://faolex.fao.org/docs/pdf/phi208910.pdf", "ids": "SE-16", "min": 12},
-        "lgu": {"status": "unconfirmed", "text": "At least 18 hours a day (12 hours if classed as Category B under NWRB's 2018 rules).", "cite": "NWRB Res. 14-0921, via JMC 02 s.2024, p. 7", "url": "https://www.dbm.gov.ph/wp-content/uploads/Issuances/2024/Joint-Memorandum-Circular/DENR-NEDA-DILG-DBM-DOF-JOINT-MEMORANDUM-CIRCULAR-NO.-02.pdf", "ids": "SE-23, SE-20", "min": 18},
-        "community": {"status": "none", "text": "No minimum. NWRB's 2018 rules set no numbers for community-based systems.", "cite": "NWRB MC 2019-001, p. 11", "url": "https://faolex.fao.org/docs/pdf/phi208910.pdf", "ids": "SE-21", "min": null}
-      },
-      "target": {"text": "National target: 24 hours a day.", "cite": "Philippine Water Supply and Sanitation Master Plan 2019-2030, p. 37", "url": "https://depdev.gov.ph/wp-content/uploads/2021/09/021122_PWSSMP_Abridged-Version.pdf", "ids": "SE-30"}
+  "mwss": {
+   "name": "Metro Manila concessionaire",
+   "plain": "Manila Water or Maynilad, private companies running MWSS's system under a concession agreement."
+  },
+  "private": {
+   "name": "Private utility (NWRB-regulated)",
+   "plain": "A private water company holding a Certificate of Public Convenience from the National Water Resources Board."
+  },
+  "lgu": {
+   "name": "LGU-run utility",
+   "plain": "A water system run directly by the city or municipal government."
+  },
+  "community": {
+   "name": "Community system",
+   "plain": "A barangay waterworks association, rural waterworks association or cooperative."
+  }
+ },
+ "dimensions": [
+  {
+   "id": "hours",
+   "group": "check",
+   "title": "Hours of water each day",
+   "question": "How many hours a day you should have water at the tap",
+   "rules": {
+    "wd": {
+     "status": "none",
+     "text": "No minimum. LWUA and the state auditor track the share of homes with 24/7 water, but each district sets its own target. If a private partner runs your district, its contract may promise 24 hours.",
+     "cite": "LWUA-DBM JMC 2023-1, Form A, indicator 2; LWUA MC 011-18",
+     "url": "https://rbpms.dap.edu.ph/wp-content/uploads/2024/01/LWUA-DBM-JOINT-MEMORANDUM-CIRUCLAR-2023-01-GUIDELINES-ON-THE-GRANT-OF-FY-2023-PBB.pdf",
+     "ids": "SE-08",
+     "min": null
     },
-    {
-      "id": "pressure", "group": "check", "title": "Water pressure",
-      "question": "How strong the flow at your connection should be",
-      "rules": {
-        "wd": {"status": "none", "text": "No minimum pressure found for water districts.", "cite": "PD 198, Secs. 62 and 66", "url": "https://lawphil.net/statutes/presdecs/pd1973/pd_198_1973.html", "ids": "SE-11", "psi": null},
-        "mwss": {"status": "unconfirmed", "text": "At least 7 psi (about 5 meters of head) at the connection.", "cite": "MWSS-RO Res. 2026-04-CA (news report)", "url": "https://www.gmanetwork.com/news/money/companies/979884/mwss-ro-imposes-p42-6-m-penalty-vs-maynilad/story/", "ids": "SE-40, CO-20", "psi": 7},
-        "private": {"status": "unconfirmed", "text": "At least 8 psi for homes.", "cite": "NWRB Res. 14-0921", "url": "https://www.dbm.gov.ph/wp-content/uploads/Issuances/2024/Joint-Memorandum-Circular/DENR-NEDA-DILG-DBM-DOF-JOINT-MEMORANDUM-CIRCULAR-NO.-02.pdf", "ids": "SE-24, SE-18", "psi": 8},
-        "lgu": {"status": "unconfirmed", "text": "At least 8 psi for homes.", "cite": "NWRB Res. 14-0921, via JMC 02 s.2024, p. 7", "url": "https://www.dbm.gov.ph/wp-content/uploads/Issuances/2024/Joint-Memorandum-Circular/DENR-NEDA-DILG-DBM-DOF-JOINT-MEMORANDUM-CIRCULAR-NO.-02.pdf", "ids": "SE-24", "psi": 8},
-        "community": {"status": "none", "text": "No minimum pressure found.", "cite": "", "url": "", "ids": "", "psi": null}
-      },
-      "target": {"text": "National target: at least 7 meters (about 10 psi) at piped household connections.", "cite": "PWSSMP 2019-2030, p. 37", "url": "https://depdev.gov.ph/wp-content/uploads/2021/09/021122_PWSSMP_Abridged-Version.pdf", "ids": "SE-31"}
+    "mwss": {
+     "status": "binding",
+     "text": "24 hours a day.",
+     "cite": "Revised Concession Agreement, Sec. 5.1.2",
+     "url": "https://ro.mwss.gov.ph/wp-content/uploads/2022/01/REVISED-CA-FOR-MAYNILAD-18-MAY-2021.pdf",
+     "ids": "CO-20, SE-40",
+     "min": 24
     },
-    {
-      "id": "quality", "group": "check", "title": "Safe, clean water",
-      "question": "What your drinking water must meet",
-      "rules": {
-        "_all": {"status": "binding", "text": "Philippine National Standards for Drinking Water 2017: no E. coli or coliform, turbidity under 5 NTU, chlorine residual 0.3-1.5 mg/L, arsenic and lead under 0.01 mg/L, and limits on color, taste and odor.", "cite": "DOH AO 2017-0010, Annex A", "url": "https://doh.gov.ph/wp-content/uploads/2023/08/Administrative-Order-No.-2017-0010-Philippine-National-Standards-for-Drinking-Water.pdf", "ids": "WA-01, WA-10, WA-13 to WA-20"}
-      }
+    "private": {
+     "status": "binding",
+     "text": "At least 12 hours a day.",
+     "cite": "NWRB MC 2019-001 (2018 tariff rules), p. 10",
+     "url": "https://faolex.fao.org/docs/pdf/phi208910.pdf",
+     "ids": "SE-16",
+     "min": 12
     },
-    {
-      "id": "outage", "group": "check", "title": "Interruptions",
-      "question": "What happens when service stops",
-      "rules": {
-        "wd": {"status": "binding", "text": "After 15 or more days without water, the district may not disconnect you or charge the minimum charge. Repair times are set in each district's Citizen's Charter.", "cite": "LWUA MC 009-25 (22 Dec 2025)", "url": "https://drive.google.com/file/d/13wdHcgnwZoNx2-WNkCCRIcwCn5wVcS7Q/view", "ids": "CO-31, SE-14, CO-40"},
-        "mwss": {"status": "binding", "text": "At least 48 hours' notice before planned interruptions; unplanned ones restored within 6 hours. Bill rebates when failures last over 15 days.", "cite": "Revised Concession Agreement, pp. 16, 38", "url": "https://ro.mwss.gov.ph/wp-content/uploads/2022/01/REVISED-CA-FOR-MAYNILAD-18-MAY-2021.pdf", "ids": "CO-21, CO-23"},
-        "private": {"status": "none", "text": "No rule on notice or restoration times found.", "cite": "", "url": "", "ids": ""},
-        "lgu": {"status": "none", "text": "No rule on notice or restoration times found.", "cite": "", "url": "", "ids": ""},
-        "community": {"status": "none", "text": "No rule on notice or restoration times found.", "cite": "", "url": "", "ids": ""}
-      }
+    "lgu": {
+     "status": "unconfirmed",
+     "text": "At least 18 hours a day (12 hours if classed as Category B under NWRB's 2018 rules).",
+     "cite": "NWRB Res. 14-0921, via JMC 02 s.2024, p. 7",
+     "url": "https://www.dbm.gov.ph/wp-content/uploads/Issuances/2024/Joint-Memorandum-Circular/DENR-NEDA-DILG-DBM-DOF-JOINT-MEMORANDUM-CIRCULAR-NO.-02.pdf",
+     "ids": "SE-23, SE-20",
+     "min": 18
     },
-    {
-      "id": "complaint", "group": "check", "title": "Response to complaints",
-      "question": "How fast someone must act on your complaint",
-      "rules": {
-        "wd": {"status": "binding", "text": "The district must follow its Citizen's Charter complaint procedure. Complaints sent through the 8888 hotline must be acted on within 72 hours.", "cite": "RA 11032; EO 6 s.2016", "url": "https://lawphil.net/executive/execord/eo2016/eo_6_2016.html", "ids": "CO-32, CO-35, CO-34"},
-        "mwss": {"status": "binding", "text": "The concessionaire's consumer desk must act \"with dispatch\" (no time limit set).", "cite": "RA 11600", "url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/94028", "ids": "CO-29"},
-        "private": {"status": "binding", "text": "Complaints filed with the NWRB Board: answer within 10 days, decision within 60 days.", "cite": "NWRB Res. 04-0391", "url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/49793", "ids": "CO-36"},
-        "lgu": {"status": "binding", "text": "Citizen's Charter procedure; 8888 complaints acted on within 72 hours.", "cite": "RA 11032; EO 6 s.2016", "url": "https://lawphil.net/executive/execord/eo2016/eo_6_2016.html", "ids": "CO-35, CO-36"},
-        "community": {"status": "binding", "text": "Complaints can go to NWRB if the system is registered there.", "cite": "NWRB Res. 04-0391", "url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/49793", "ids": "CO-36"}
-      }
-    },
-    {
-      "id": "bill", "group": "check", "title": "Your water bill",
-      "question": "Rules on what you can be charged",
-      "rules": {
-        "wd": {"status": "binding", "text": "Rates are reviewed by LWUA. A public hearing is required before every increase, and each increase can be at most 60% of the current rate.", "cite": "PD 198; LOI 700; PD 1479", "url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/34/14884", "ids": "ST-06, ST-21, CO-37, CO-38"},
-        "mwss": {"status": "binding", "text": "\"Fair and reasonable\" rates set by the MWSS Regulatory Office.", "cite": "RA 11600", "url": "https://lawphil.net/statutes/repacts/ra2021/ra_11600_2021.html", "ids": "ST-40, ST-17"},
-        "private": {"status": "binding", "text": "Rates follow NWRB's tariff method; return on investment capped at 12%.", "cite": "NWRB MC 2019-001, p. 8", "url": "https://faolex.fao.org/docs/pdf/phi208910.pdf", "ids": "SE-19"},
-        "lgu": {"status": "binding", "text": "Rates are set by the local council.", "cite": "Local Government Code Sec. 154", "url": "https://lawphil.net/statutes/repacts/ra1991/ra_7160_1991.html", "ids": "ST-25, SE-27"},
-        "community": {"status": "none", "text": "Rates are self-set; no outside review found.", "cite": "", "url": "", "ids": ""}
-      }
-    },
-    {
-      "id": "connect", "group": "check", "title": "Getting connected",
-      "question": "How long a new connection application can take",
-      "rules": {
-        "wd": {"status": "binding", "text": "3, 7 or 20 working days for simple, complex or highly technical applications, with written reasons if denied.", "cite": "RA 11032 (Ease of Doing Business Act)", "url": "https://lawphil.net/statutes/repacts/ra2018/ra_11032_2018.html", "ids": "ST-36, CO-33"},
-        "mwss": {"status": "none", "text": "RA 11032 processing times do not bind private operators.", "cite": "", "url": "", "ids": ""},
-        "private": {"status": "none", "text": "RA 11032 processing times do not bind private operators.", "cite": "", "url": "", "ids": ""},
-        "lgu": {"status": "binding", "text": "3, 7 or 20 working days for simple, complex or highly technical applications.", "cite": "RA 11032", "url": "https://lawphil.net/statutes/repacts/ra2018/ra_11032_2018.html", "ids": "ST-36"},
-        "community": {"status": "none", "text": "No processing-time rule found.", "cite": "", "url": "", "ids": ""}
-      }
-    },
-    {
-      "id": "testing", "group": "behind", "title": "Water testing",
-      "rules": {
-        "_all": {"status": "binding", "text": "Bacteriological tests at least every 6 months and chemical tests every 12 months, at DOH-accredited labs.", "cite": "PD 856 (Sanitation Code)", "url": "https://lawphil.net/statutes/presdecs/pd1975/pd_856_1975.html", "ids": "WA-28, WA-29"}
-      }
-    },
-    {
-      "id": "contamination", "group": "behind", "title": "When contamination is found",
-      "rules": {
-        "_all": {"status": "binding", "text": "A sanitary survey within 24 hours of a positive E. coli result, and a boil-water advisory if it persists.", "cite": "DOH AO 2017-0010, p. 4", "url": "https://doh.gov.ph/wp-content/uploads/2023/08/Administrative-Order-No.-2017-0010-Philippine-National-Standards-for-Drinking-Water.pdf", "ids": "WA-06"}
-      }
-    },
-    {
-      "id": "wsp", "group": "behind", "title": "Water Safety Plan",
-      "rules": {
-        "_all": {"status": "binding", "text": "An approved Water Safety Plan covering source to tap.", "cite": "DOH AO 2014-0027", "url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/78964", "ids": "WA-31, WA-32"}
-      }
-    },
-    {
-      "id": "disclosure", "group": "behind", "title": "Telling the public",
-      "rules": {
-        "wd": {"status": "binding", "text": "No duty to publish water-quality results; they go to the local health office only. Joint-venture agreements must be posted within 5 working days.", "cite": "DOH AO 2017-0010, p. 6; NEDA JV Guidelines 2023, p. 11", "url": "https://depdev.gov.ph/wp-content/uploads/2025/02/2023-NEDA-JV-Guidelines.pdf", "ids": "WA-04, CO-07"},
-        "mwss": {"status": "binding", "text": "Annual report to Congress on coverage.", "cite": "RA 11601", "url": "https://lawphil.net/statutes/repacts/ra2021/ra_11601_2021.html", "ids": "ST-41"},
-        "private": {"status": "none", "text": "No disclosure duty found.", "cite": "", "url": "", "ids": ""},
-        "lgu": {"status": "binding", "text": "The LGU monitoring committee must \"inform the public\" about local water quality (no frequency set).", "cite": "DOH-DILG JAO 2022-0002, p. 4", "url": "https://faolex.fao.org/docs/pdf/phi210925.pdf", "ids": "WA-35"},
-        "community": {"status": "none", "text": "No disclosure duty found.", "cite": "", "url": "", "ids": ""}
-      }
-    },
-    {
-      "id": "coverage", "group": "behind", "title": "Serving everyone in the area",
-      "rules": {
-        "wd": {"status": "none", "text": "The district holds an exclusive franchise but has no legal duty to extend service across its area.", "cite": "PD 198", "url": "https://lawphil.net/statutes/presdecs/pd1973/pd_198_1973.html", "ids": "ST-08"},
-        "mwss": {"status": "binding", "text": "100% water and sewerage coverage by 2037.", "cite": "RA 11600/11601", "url": "https://lawphil.net/statutes/repacts/ra2021/ra_11601_2021.html", "ids": "ST-41, CO-24"},
-        "private": {"status": "none", "text": "No coverage duty found.", "cite": "", "url": "", "ids": ""},
-        "lgu": {"status": "none", "text": "LGUs must \"provide\" water systems, with no service level.", "cite": "Local Government Code Sec. 17", "url": "https://lawphil.net/statutes/repacts/ra1991/ra_7160_1991.html", "ids": "ST-22 to ST-24"},
-        "community": {"status": "none", "text": "No coverage duty found.", "cite": "", "url": "", "ids": ""}
-      }
+    "community": {
+     "status": "none",
+     "text": "No minimum. NWRB's 2018 rules set no numbers for community-based systems.",
+     "cite": "NWRB MC 2019-001, p. 11",
+     "url": "https://faolex.fao.org/docs/pdf/phi208910.pdf",
+     "ids": "SE-21",
+     "min": null
     }
-  ]
+   },
+   "target": {
+    "text": "National target: 24 hours a day.",
+    "cite": "Philippine Water Supply and Sanitation Master Plan 2019-2030, p. 37",
+    "url": "https://depdev.gov.ph/wp-content/uploads/2021/09/021122_PWSSMP_Abridged-Version.pdf",
+    "ids": "SE-30"
+   }
+  },
+  {
+   "id": "pressure",
+   "group": "check",
+   "title": "Water pressure",
+   "question": "How strong the flow at your connection should be",
+   "rules": {
+    "wd": {
+     "status": "none",
+     "text": "No minimum. LWUA's performance indicators don't measure pressure at all. Some private-partner contracts promise 10 psi.",
+     "cite": "PIDS DP 2020-33, p. 29",
+     "url": "https://pidswebs.pids.gov.ph/CDN/PUBLICATIONS/pidsdps2033.pdf",
+     "ids": "SE-11",
+     "psi": null
+    },
+    "mwss": {
+     "status": "unconfirmed",
+     "text": "At least 7 psi (about 5 meters of head) at the connection.",
+     "cite": "MWSS-RO Res. 2026-04-CA (news report)",
+     "url": "https://www.gmanetwork.com/news/money/companies/979884/mwss-ro-imposes-p42-6-m-penalty-vs-maynilad/story/",
+     "ids": "SE-40, CO-20",
+     "psi": 7
+    },
+    "private": {
+     "status": "unconfirmed",
+     "text": "At least 8 psi for homes.",
+     "cite": "NWRB Res. 14-0921",
+     "url": "https://www.dbm.gov.ph/wp-content/uploads/Issuances/2024/Joint-Memorandum-Circular/DENR-NEDA-DILG-DBM-DOF-JOINT-MEMORANDUM-CIRCULAR-NO.-02.pdf",
+     "ids": "SE-24, SE-18",
+     "psi": 8
+    },
+    "lgu": {
+     "status": "unconfirmed",
+     "text": "At least 8 psi for homes.",
+     "cite": "NWRB Res. 14-0921, via JMC 02 s.2024, p. 7",
+     "url": "https://www.dbm.gov.ph/wp-content/uploads/Issuances/2024/Joint-Memorandum-Circular/DENR-NEDA-DILG-DBM-DOF-JOINT-MEMORANDUM-CIRCULAR-NO.-02.pdf",
+     "ids": "SE-24",
+     "psi": 8
+    },
+    "community": {
+     "status": "none",
+     "text": "No minimum pressure found.",
+     "cite": "",
+     "url": "",
+     "ids": "",
+     "psi": null
+    }
+   },
+   "target": {
+    "text": "National target: at least 7 meters (about 10 psi) at piped household connections.",
+    "cite": "PWSSMP 2019-2030, p. 37",
+    "url": "https://depdev.gov.ph/wp-content/uploads/2021/09/021122_PWSSMP_Abridged-Version.pdf",
+    "ids": "SE-31"
+   }
+  },
+  {
+   "id": "quality",
+   "group": "check",
+   "title": "Safe, clean water",
+   "question": "What your drinking water must meet",
+   "rules": {
+    "_all": {
+     "status": "binding",
+     "text": "Philippine National Standards for Drinking Water 2017: no E. coli or coliform, turbidity under 5 NTU, chlorine residual 0.3-1.5 mg/L, arsenic and lead under 0.01 mg/L, and limits on color, taste and odor.",
+     "cite": "DOH AO 2017-0010, Annex A",
+     "url": "https://doh.gov.ph/wp-content/uploads/2023/08/Administrative-Order-No.-2017-0010-Philippine-National-Standards-for-Drinking-Water.pdf",
+     "ids": "WA-01, WA-10, WA-13 to WA-20"
+    }
+   }
+  },
+  {
+   "id": "outage",
+   "group": "check",
+   "title": "Interruptions",
+   "question": "What happens when service stops",
+   "rules": {
+    "wd": {
+     "status": "binding",
+     "text": "After 15 or more days without water, the district may not disconnect you or charge the minimum charge. Repair times are set in each district's Citizen's Charter.",
+     "cite": "LWUA MC 009-25 (22 Dec 2025)",
+     "url": "https://drive.google.com/file/d/13wdHcgnwZoNx2-WNkCCRIcwCn5wVcS7Q/view",
+     "ids": "CO-31, SE-14, CO-40"
+    },
+    "mwss": {
+     "status": "binding",
+     "text": "At least 48 hours' notice before planned interruptions; unplanned ones restored within 6 hours. Bill rebates when failures last over 15 days.",
+     "cite": "Revised Concession Agreement, pp. 16, 38",
+     "url": "https://ro.mwss.gov.ph/wp-content/uploads/2022/01/REVISED-CA-FOR-MAYNILAD-18-MAY-2021.pdf",
+     "ids": "CO-21, CO-23"
+    },
+    "private": {
+     "status": "none",
+     "text": "No rule on notice or restoration times found.",
+     "cite": "",
+     "url": "",
+     "ids": ""
+    },
+    "lgu": {
+     "status": "none",
+     "text": "No rule on notice or restoration times found.",
+     "cite": "",
+     "url": "",
+     "ids": ""
+    },
+    "community": {
+     "status": "none",
+     "text": "No rule on notice or restoration times found.",
+     "cite": "",
+     "url": "",
+     "ids": ""
+    }
+   }
+  },
+  {
+   "id": "complaint",
+   "group": "check",
+   "title": "Response to complaints",
+   "question": "How fast someone must act on your complaint",
+   "rules": {
+    "wd": {
+     "status": "binding",
+     "text": "The district must follow its Citizen's Charter complaint procedure. Complaints sent through the 8888 hotline must be acted on within 72 hours.",
+     "cite": "RA 11032; EO 6 s.2016",
+     "url": "https://lawphil.net/executive/execord/eo2016/eo_6_2016.html",
+     "ids": "CO-32, CO-35, CO-34"
+    },
+    "mwss": {
+     "status": "binding",
+     "text": "The concessionaire's consumer desk must act \"with dispatch\" (no time limit set).",
+     "cite": "RA 11600",
+     "url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/94028",
+     "ids": "CO-29"
+    },
+    "private": {
+     "status": "binding",
+     "text": "Complaints filed with the NWRB Board: answer within 10 days, decision within 60 days.",
+     "cite": "NWRB Res. 04-0391",
+     "url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/49793",
+     "ids": "CO-36"
+    },
+    "lgu": {
+     "status": "binding",
+     "text": "Citizen's Charter procedure; 8888 complaints acted on within 72 hours.",
+     "cite": "RA 11032; EO 6 s.2016",
+     "url": "https://lawphil.net/executive/execord/eo2016/eo_6_2016.html",
+     "ids": "CO-35, CO-36"
+    },
+    "community": {
+     "status": "binding",
+     "text": "Complaints can go to NWRB if the system is registered there.",
+     "cite": "NWRB Res. 04-0391",
+     "url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/49793",
+     "ids": "CO-36"
+    }
+   }
+  },
+  {
+   "id": "bill",
+   "group": "check",
+   "title": "Your water bill",
+   "question": "Rules on what you can be charged",
+   "rules": {
+    "wd": {
+     "status": "binding",
+     "text": "Rates are reviewed by LWUA. A public hearing is required before every increase, and each increase can be at most 60% of the current rate.",
+     "cite": "PD 198; LOI 700; PD 1479",
+     "url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/34/14884",
+     "ids": "ST-06, ST-21, CO-37, CO-38"
+    },
+    "mwss": {
+     "status": "binding",
+     "text": "\"Fair and reasonable\" rates set by the MWSS Regulatory Office.",
+     "cite": "RA 11600",
+     "url": "https://lawphil.net/statutes/repacts/ra2021/ra_11600_2021.html",
+     "ids": "ST-40, ST-17"
+    },
+    "private": {
+     "status": "binding",
+     "text": "Rates follow NWRB's tariff method; return on investment capped at 12%.",
+     "cite": "NWRB MC 2019-001, p. 8",
+     "url": "https://faolex.fao.org/docs/pdf/phi208910.pdf",
+     "ids": "SE-19"
+    },
+    "lgu": {
+     "status": "binding",
+     "text": "Rates are set by the local council.",
+     "cite": "Local Government Code Sec. 154",
+     "url": "https://lawphil.net/statutes/repacts/ra1991/ra_7160_1991.html",
+     "ids": "ST-25, SE-27"
+    },
+    "community": {
+     "status": "none",
+     "text": "Rates are self-set; no outside review found.",
+     "cite": "",
+     "url": "",
+     "ids": ""
+    }
+   }
+  },
+  {
+   "id": "connect",
+   "group": "check",
+   "title": "Getting connected",
+   "question": "How long a new connection application can take",
+   "rules": {
+    "wd": {
+     "status": "binding",
+     "text": "3, 7 or 20 working days for simple, complex or highly technical applications, with written reasons if denied.",
+     "cite": "RA 11032 (Ease of Doing Business Act)",
+     "url": "https://lawphil.net/statutes/repacts/ra2018/ra_11032_2018.html",
+     "ids": "ST-36, CO-33"
+    },
+    "mwss": {
+     "status": "none",
+     "text": "RA 11032 processing times do not bind private operators.",
+     "cite": "",
+     "url": "",
+     "ids": ""
+    },
+    "private": {
+     "status": "none",
+     "text": "RA 11032 processing times do not bind private operators.",
+     "cite": "",
+     "url": "",
+     "ids": ""
+    },
+    "lgu": {
+     "status": "binding",
+     "text": "3, 7 or 20 working days for simple, complex or highly technical applications.",
+     "cite": "RA 11032",
+     "url": "https://lawphil.net/statutes/repacts/ra2018/ra_11032_2018.html",
+     "ids": "ST-36"
+    },
+    "community": {
+     "status": "none",
+     "text": "No processing-time rule found.",
+     "cite": "",
+     "url": "",
+     "ids": ""
+    }
+   }
+  },
+  {
+   "id": "testing",
+   "group": "behind",
+   "title": "Water testing",
+   "rules": {
+    "_all": {
+     "status": "binding",
+     "text": "Bacteriological tests at least every 6 months and chemical tests every 12 months, at DOH-accredited labs.",
+     "cite": "PD 856 (Sanitation Code)",
+     "url": "https://lawphil.net/statutes/presdecs/pd1975/pd_856_1975.html",
+     "ids": "WA-28, WA-29"
+    }
+   }
+  },
+  {
+   "id": "contamination",
+   "group": "behind",
+   "title": "When contamination is found",
+   "rules": {
+    "_all": {
+     "status": "binding",
+     "text": "A sanitary survey within 24 hours of a positive E. coli result, and a boil-water advisory if it persists.",
+     "cite": "DOH AO 2017-0010, p. 4",
+     "url": "https://doh.gov.ph/wp-content/uploads/2023/08/Administrative-Order-No.-2017-0010-Philippine-National-Standards-for-Drinking-Water.pdf",
+     "ids": "WA-06"
+    }
+   }
+  },
+  {
+   "id": "wsp",
+   "group": "behind",
+   "title": "Water Safety Plan",
+   "rules": {
+    "_all": {
+     "status": "binding",
+     "text": "An approved Water Safety Plan covering source to tap.",
+     "cite": "DOH AO 2014-0027",
+     "url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/78964",
+     "ids": "WA-31, WA-32"
+    }
+   }
+  },
+  {
+   "id": "disclosure",
+   "group": "behind",
+   "title": "Telling the public",
+   "rules": {
+    "wd": {
+     "status": "binding",
+     "text": "No duty to publish water-quality results; they go to the local health office only. Joint-venture agreements must be posted within 5 working days.",
+     "cite": "DOH AO 2017-0010, p. 6; NEDA JV Guidelines 2023, p. 11",
+     "url": "https://depdev.gov.ph/wp-content/uploads/2025/02/2023-NEDA-JV-Guidelines.pdf",
+     "ids": "WA-04, CO-07"
+    },
+    "mwss": {
+     "status": "binding",
+     "text": "Annual report to Congress on coverage.",
+     "cite": "RA 11601",
+     "url": "https://lawphil.net/statutes/repacts/ra2021/ra_11601_2021.html",
+     "ids": "ST-41"
+    },
+    "private": {
+     "status": "none",
+     "text": "No disclosure duty found.",
+     "cite": "",
+     "url": "",
+     "ids": ""
+    },
+    "lgu": {
+     "status": "binding",
+     "text": "The LGU monitoring committee must \"inform the public\" about local water quality (no frequency set).",
+     "cite": "DOH-DILG JAO 2022-0002, p. 4",
+     "url": "https://faolex.fao.org/docs/pdf/phi210925.pdf",
+     "ids": "WA-35"
+    },
+    "community": {
+     "status": "none",
+     "text": "No disclosure duty found.",
+     "cite": "",
+     "url": "",
+     "ids": ""
+    }
+   }
+  },
+  {
+   "id": "coverage",
+   "group": "behind",
+   "title": "Serving everyone in the area",
+   "rules": {
+    "wd": {
+     "status": "none",
+     "text": "The district holds an exclusive franchise but has no legal duty to extend service across its area.",
+     "cite": "PD 198",
+     "url": "https://lawphil.net/statutes/presdecs/pd1973/pd_198_1973.html",
+     "ids": "ST-08"
+    },
+    "mwss": {
+     "status": "binding",
+     "text": "100% water and sewerage coverage by 2037.",
+     "cite": "RA 11600/11601",
+     "url": "https://lawphil.net/statutes/repacts/ra2021/ra_11601_2021.html",
+     "ids": "ST-41, CO-24"
+    },
+    "private": {
+     "status": "none",
+     "text": "No coverage duty found.",
+     "cite": "",
+     "url": "",
+     "ids": ""
+    },
+    "lgu": {
+     "status": "none",
+     "text": "LGUs must \"provide\" water systems, with no service level.",
+     "cite": "Local Government Code Sec. 17",
+     "url": "https://lawphil.net/statutes/repacts/ra1991/ra_7160_1991.html",
+     "ids": "ST-22 to ST-24"
+    },
+    "community": {
+     "status": "none",
+     "text": "No coverage duty found.",
+     "cite": "",
+     "url": "",
+     "ids": ""
+    }
+   }
+  }
+ ],
+ "notes": {
+  "jv": {
+   "text": "Joint venture contracts reviewed (BACIWA, San Jose) promise 24-hour supply within 2 to 5 years and 10 psi within 4 to 5 years. Only the water district's board can enforce them, by forfeiting the operator's performance bond or ending the contract. The contract's targets are usually not public, but some districts publish an annual JV compliance report.",
+   "cite": "BACIWA-PrimeWater JVA Secs. 5.1.2, 5.3; San Jose WD JV Implementation Report 2023",
+   "url": "https://dnx.news/in-full-the-primewater-baciwa-joint-venture-agreement/"
+  }
+ }
 }

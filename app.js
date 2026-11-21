@@ -11,6 +11,7 @@
   const fmtN = n => (n == null || n === '' ? '—' : Number(n).toLocaleString('en-US'));
   const peso = n => '₱' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtPct = n => (Math.round(n * 1000) / 10).toString().replace(/\.0$/, '') + '%';
+  const fmtDate = d => { const t = new Date(d + 'T00:00:00'); return isNaN(t) ? d : t.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }); };
   const lc = s => s ? s.charAt(0).toLowerCase() + s.slice(1) : s;
   const bLabel = b => /^(barangay|poblacion)/i.test(b) ? b : 'Barangay ' + b;
   const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
@@ -79,6 +80,7 @@
   const save = () => store.set('tubig-state', { muni: S.muni, brgy: S.brgy, ptype: S.ptype, answers: S.answers, lat: S.lat, lon: S.lon, exact: S.exact });
   const muni = () => (S.muni && D.places) ? D.places.munis[D.muniByCode[S.muni]] : null;
   const wd = () => { const m = muni(); return m && m.wd != null ? D.districts[m.wd] : null; };
+  const jvOp = () => (S.ptype === 'wd' && wd() && wd().op) ? wd().op : null;
   const isMCWD = () => S.ptype === 'wd' && wd() && wd().n === 'Mabalacat City Water District';
   const detectType = m => /metro manila/i.test(m.p) ? 'mwss' : (m.wd != null ? 'wd' : 'lgu');
   const placeLabel = () => { const m = muni(); return m ? (S.brgy ? bLabel(S.brgy) + ', ' : '') + `${m.n}, ${m.p}` : ''; };
@@ -247,7 +249,7 @@
     }
     if (a.billCheck) {
       const b = a.billCheck;
-      push('bill', `Billed ${peso(b.a)} for ${b.c} m³`, 'check', `The approved tariff gives ${peso(b.exp)} for ${b.c} m³.`, `Explain each charge on my bill; the approved tariff gives ${peso(b.exp)} for ${b.c} m³, but I was billed ${peso(b.a)}.`);
+      push('bill', `Billed ${peso(b.a)} for ${b.c} m³`, 'check', `At the latest LWUA-approved rate, ${b.c} m³ costs ${peso(b.exp)}.`, `Itemize my bill and show the approved rate used. At the latest LWUA-approved rate, ${b.c} m³ costs ${peso(b.exp)}, but I was billed ${peso(b.a)}.`);
     }
     if (a.connect && a.connect !== 'no') {
       const you = LABEL.connect[a.connect], r = ruleFor(dim('connect'));
@@ -390,7 +392,7 @@
       ${S.ptype === 'lgu' && detectType(m) === 'lgu' ? `<div class="callout">${I.info}<p>No water district found for ${esc(m.n)}. Pick the provider type that serves you.</p></div>` : ''}
       <p class="section-label">What you're owed</p>
       <div class="facts">${key.map(fact).join('')}</div>
-      ${noHrs ? `<div class="callout">${I.alert}<p><b>No minimum hours or pressure.</b> No national rule sets them for your provider type. Tubig asks your provider for its own target.</p></div>` : ''}
+      ${noHrs ? `<div class="callout">${I.alert}<p><b>No minimum hours or pressure.</b> No national rule sets them for ${S.ptype === 'wd' ? 'water districts' : 'your provider type'}. ${jvOp() ? `Your district's contract with ${esc(jvOp().replace(/ \(.*\)$/, ''))} may promise them, and only the district can enforce it. Tubig asks for that report.` : 'Tubig asks your provider for its own target.'}</p></div>` : ''}
       <p class="section-label">All rules</p>
       <div class="rules">${dims.map(row).join('')}</div>`,
       `<button class="btn" id="to-bill">${I.bill}Check bill</button><button class="btn btn-primary" id="to-report">Report a problem</button>`, 'half');
@@ -502,6 +504,7 @@
       return `${head} ${(r.note || '').replace(/^Someone got sick: go to your health office now\. /, '')}`.trim();
     });
     const asks = [...new Set(issues.map(r => r.ask).filter(Boolean))];
+    if (jvOp() && issues.some(r => r.id === 'hours' || r.id === 'pressure')) asks.push(`Send me the district's latest joint venture compliance report, showing ${jvOp().replace(/ \(.*\)$/, '')}'s targets and results for hours of supply and water pressure, and the action the district has taken where targets were missed.`);
     const date = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
     return `${date}
 
@@ -568,8 +571,9 @@ Contact: [phone or email]`;
     const tf = tariffFor(), w = wd();
     const table = tf ? `<div class="tariff"><table><thead><tr><th>Water used</th><th class="num">Charge</th></tr></thead><tbody>
       <tr><td>First 10 m³ (minimum)</td><td class="num">${peso(tf.min)}</td></tr>
-      ${(tf.blocks || []).map(b => `<tr><td>${b.from} to ${b.to == null ? 'more' : b.to} m³</td><td class="num">${peso(b.rate)} per m³</td></tr>`).join('')}</tbody></table></div>
-      <p class="src-line">${tf.note ? esc(tf.note) + ' ' : ''}Source: ${tf.url ? `<a href="${esc(tf.url)}" target="_blank" rel="noopener">${esc(tf.source)}</a>` : esc(tf.source || '')}${tf.effective ? `, effective ${esc(tf.effective)}` : ''}. Residential, ½-inch meter.</p>` : '';
+      ${(tf.blocks || []).map(b => `<tr><td>${b.to == null ? `${b.from} m³ and up` : `${b.from} to ${b.to} m³`}</td><td class="num">${peso(b.rate)} per m³</td></tr>`).join('')}</tbody></table></div>
+      <p class="src-line">Residential, ½-inch meter. Latest rate LWUA has on record${tf.effective ? `, approved ${esc(fmtDate(tf.effective))}` : ''}. Source: ${tf.url ? `<a href="${esc(tf.url)}" target="_blank" rel="noopener">${esc(tf.source)}</a>` : esc(tf.source || '')}.</p>
+      ${jvOp() ? `<div class="callout info">${I.info}<p>Your district is run with ${esc(jvOp().replace(/ \(.*\)$/, ''))}. Rates under a joint venture may be newer than what LWUA has posted. Ask the district for its current approved schedule.</p></div>` : ''}` : '';
     render(`<button class="back" id="back">${I.left}Rules</button>
       <h2 class="h-title">Check your bill</h2>
       <p class="h-sub">${esc(S.ptype === 'wd' && w ? w.n : providerName())}</p>
@@ -588,12 +592,14 @@ Contact: [phone or email]`;
       const r = computeBill(tf, c);
       if (!r || r.total == null) { out.innerHTML = `<div class="bill-result"><p>We only have the minimum charge for this district (${peso(tf.min)} for the first 10 m³). Rates above 10 m³ aren't in our data yet.</p></div>`; return; }
       const exp = r.total;
-      if (!(a > 0)) { out.innerHTML = `<div class="bill-result ok"><span class="br-big">${peso(exp)}</span><p>Expected water charge for ${c} m³, before arrears or other fees.</p></div>`; return; }
-      const diff = a - exp, over = diff > Math.max(5, exp * .03);
-      out.innerHTML = `<div class="bill-result ${over ? 'over' : 'ok'}"><span class="br-big">${over ? '+' + peso(diff) : peso(exp)}</span>
-        <p>${over ? `Your bill is ${peso(diff)} above the tariff for ${c} m³ (${peso(exp)}). Fees, arrears or VAT may explain it; ask your provider to itemize.` : `Your bill matches the tariff for ${c} m³ (${peso(exp)}).`}</p>
+      if (!(a > 0)) { out.innerHTML = `<div class="bill-result ok"><span class="br-big">${peso(exp)}</span><p>What ${c} m³ should cost at this rate, before arrears or other fees.</p></div>`; return; }
+      const diff = a - exp, tol = Math.max(5, exp * .03), over = diff > tol, under = diff < -tol;
+      out.innerHTML = `<div class="bill-result ${over ? 'over' : 'ok'}"><span class="br-big">${over ? '+' + peso(diff) : under ? '−' + peso(-diff) : peso(exp)}</span>
+        <p>${over ? `You were billed ${peso(diff)} more than ${c} m³ costs at this rate (${peso(exp)}). A newer rate, fees, arrears or VAT may explain it. Ask the district to itemize the bill and show the approved rate.`
+          : under ? `You were billed ${peso(-diff)} less than ${c} m³ costs at this rate (${peso(exp)}). A senior or PWD discount, a newer lower rate, or a misread meter could explain it. Check the meter reading on your bill.`
+          : `Your bill matches what ${c} m³ costs at this rate (${peso(exp)}).`}</p>
         ${over ? `<button class="btn btn-sm" id="add-bill" style="margin-top:10px">Add to my complaint</button>` : ''}</div>`;
-      const ab = $('#add-bill'); if (ab) ab.onclick = () => { S.answers.billCheck = { c, a, exp }; save(); toast('Added to your complaint'); go('#/report/1'); };
+      const ab = $('#add-bill'); if (ab) ab.onclick = () => { S.answers.billCheck = { c, a, exp }; save(); toast('Added to your complaint'); go('#/gap'); };
     };
     cum.addEventListener('input', upd); amt.addEventListener('input', upd);
   }
@@ -670,7 +676,9 @@ Contact: [phone or email]`;
       <div class="table-scroll" style="margin-top:12px"><table class="table matrix"><thead><tr><th>Service</th>${keys.map(k => `<th>${esc(Pv[k].name)}</th>`).join('')}</tr></thead><tbody>${D.ob.dimensions.map(d => `<tr style="cursor:default"><th>${esc(d.title)}</th>${keys.map(k => { const r = d.rules._all || d.rules[k]; return `<td>${r.status === 'none' ? '<span class="count">No rule found</span>' : esc(r.text)}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>
       <h2>Questions</h2><div class="faq">
         <details><summary>Is my information stored?</summary><p>No accounts, nothing sent to us. Answers stay in your browser. The place you pick goes to OpenStreetMap to show it on the map.</p></details>
-        <details><summary>Why is there no minimum for hours or pressure?</summary><p>No binding national rule sets one for water districts. Each district sets its own target. Tubig shows the national target and asks your provider for its own.</p></details>
+        <details><summary>Why is there no minimum for hours or pressure?</summary><p>No national rule requires water districts to supply water 24 hours a day, at a set pressure, or in a set amount per person. Utilities regulated by NWRB and those run by local governments have minimums (18 hours a day and 8 psi under NWRB Res. 14-0921); water districts do not. LWUA and the Commission on Audit track hours of supply as a performance indicator, but each district sets its own target. Districts must meet national drinking-water quality standards and act on complaints within their Citizen's Charter times and 72 hours for 8888 complaints.</p></details>
+        <details><summary>What if a private company runs my water district?</summary><p>Joint venture contracts reviewed so far promise 24-hour supply within 2 to 5 years and 10 psi within 4 to 5 years. These are contract terms, not regulations: only the water district's board can enforce them, by forfeiting the operator's performance bond or ending the contract. The contracts are usually not public, so ask your district for its annual joint venture compliance report. Your complaint goes to the water district, which answers for its partner.</p></details>
+        <details><summary>Will this change?</summary><p>A bill creating a Water Regulatory Commission with power to set minimum service standards passed the House in December 2025 and is pending in the Senate. Until then, the gaps Tubig shows are gaps in the rules, not only in service.</p></details>
         <details><summary>Is this legal advice?</summary><p>No. Rules are summarized from an inventory of 240 obligations. Always check the linked source.</p></details>
         <details><summary>Are the contacts current?</summary><p>They come from official websites and Citizen's Charters and can change. Call to confirm.</p></details></div>
       <p class="count" style="margin-top:32px">Data are preliminary and under human verification. Map © OpenStreetMap contributors. <a href="https://github.com/gregor-posadas/tubig">Source code</a></p>`;
