@@ -166,7 +166,7 @@ p { margin: 0 0 1em; }
 .resume p { margin: 0; flex: 1 1 220px; }
 .hero-map { position: relative; min-height: 460px; }
 .map { position: absolute; inset: 0; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border); background: #DCE6EE; box-shadow: var(--shadow-md); }
-:root[data-theme="dark"] .map .leaflet-tile-pane { filter: brightness(.75) invert(1) contrast(.9) hue-rotate(200deg) saturate(.4) brightness(.9); }
+:root[data-theme="dark"] .map .leaflet-tile-pane, :root[data-theme="dark"] .mini-map .leaflet-tile-pane { filter: brightness(.75) invert(1) contrast(.9) hue-rotate(200deg) saturate(.4) brightness(.9); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .map .leaflet-tile-pane { filter: brightness(.75) invert(1) contrast(.9) hue-rotate(200deg) saturate(.4) brightness(.9); } }
 @media (max-width: 960px) { .hero { grid-template-columns: 1fr; gap: 28px; padding: 32px 16px 40px; } .hero-map { min-height: 300px; } }
 
