@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tubig: what your water provider owes you</title>
+<meta name="description" content="Look up the service standards your Philippine water provider must meet, compare them with the service you actually get, and turn the gap into a complaint.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,100,400;0,100,600;0,100,700;0,112,600;0,112,800;1,100,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3C16 3 6 15 6 21a10 10 0 0 0 20 0C26 15 16 3 16 3z' fill='%23385F96'/%3E%3C/svg%3E">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <a class="brand" href="#check" data-nav="check">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3C16 3 6 15 6 21a10 10 0 0 0 20 0C26 15 16 3 16 3z"/></svg>
+    <span>Tubig</span>
+  </a>
+  <nav aria-label="Main">
+    <a href="#check" data-nav="check">Check my water</a>
+    <a href="#data" data-nav="data">Data</a>
+    <a href="#about" data-nav="about">About</a>
+  </nav>
+</header>
+
+<main id="main">
+<!-- ============ CHECK ============ -->
+<section id="view-check" class="view" data-view="check">
+  <div class="hero">
+    <div id="map" class="map" role="region" aria-label="Map of the Philippines"></div>
+    <div class="finder">
+      <h1>What is your water provider required to give you?</h1>
+      <p class="lede">Find your barangay to see the service standards that apply to your connection. Then compare them with what comes out of your tap.</p>
+      <label for="place" class="find-label">Your barangay, city or municipality</label>
+      <div class="combo">
+        <input id="place" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. Dau, Mabalacat" role="combobox" aria-expanded="false" aria-controls="place-list" aria-autocomplete="list">
+        <ul id="place-list" role="listbox" hidden></ul>
+      </div>
+      <p class="hint">We only look up the place you pick. Nothing you enter on this site is saved or sent to anyone.</p>
+      <button type="button" class="link-btn" id="try-example">Try an example: Dau, Mabalacat City</button>
+    </div>
+  </div>
+
+  <div id="flow" class="flow" hidden>
+    <div class="provider-strip" id="provider-strip"></div>
+
+    <ol class="steps" aria-label="Steps">
+      <li><a href="#step-owed">What you're owed</a></li>
+      <li><a href="#step-getting">What you're getting</a></li>
+      <li><a href="#step-gap">The gap</a></li>
+      <li><a href="#step-act">Take action</a></li>
+    </ol>
+
+    <section id="step-owed" class="step" aria-labelledby="owed-h">
+      <h2 id="owed-h"><span class="num">1</span>What you're owed</h2>
+      <p class="step-intro" id="owed-intro"></p>
+      <div class="legend" aria-label="What the labels mean">
+        <span class="tag tag-binding">Binding rule</span>
+        <span class="tag tag-unconfirmed">Binding, text not yet confirmed</span>
+        <span class="tag tag-none">No rule found</span>
+      </div>
+      <h3 class="group-h">Things you can check yourself</h3>
+      <div id="owed-check" class="owed-list"></div>
+      <details class="behind">
+        <summary>Things your provider must do behind the scenes</summary>
+        <div id="owed-behind" class="owed-list"></div>
+      </details>
+    </section>
+
+    <section id="step-getting" class="step" aria-labelledby="getting-h">
+      <h2 id="getting-h"><span class="num">2</span>What you're getting</h2>
+      <p class="step-intro">Answer what you can, based on the past few weeks. Skip anything you're not sure about.</p>
+      <button type="button" class="link-btn" id="example-answers">Fill in example answers from a Mabalacat household (March 2026)</button>
+      <form id="survey" novalidate></form>
+    </section>
+
+    <section id="step-gap" class="step" aria-labelledby="gap-h" hidden>
+      <h2 id="gap-h"><span class="num">3</span>The gap</h2>
+      <p class="step-intro" id="gap-summary"></p>
+      <div id="ledger" class="ledger"></div>
+    </section>
+
+    <section id="step-act" class="step" aria-labelledby="act-h" hidden>
+      <h2 id="act-h"><span class="num">4</span>Take action</h2>
+      <div class="act-grid">
+        <div>
+          <h3>Your complaint letter</h3>
+          <p class="small">Written from your answers. Add your name and account number, then edit anything you like.</p>
+          <label class="sr" for="letter">Complaint letter</label>
+          <textarea id="letter" rows="18"></textarea>
+          <div class="btn-row">
+            <a id="mailto" class="btn primary" href="#">Open in my email app</a>
+            <button type="button" class="btn" id="copy-letter">Copy letter</button>
+            <span id="copy-status" class="small" role="status"></span>
+          </div>
+        </div>
+        <div>
+          <h3>Who to contact, in order</h3>
+          <ol id="routes" class="routes"></ol>
+          <h3>If you call: a script</h3>
+          <div id="script" class="script"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="step-record" class="step record" aria-labelledby="record-h">
+      <h2 id="record-h">Your provider on the public record</h2>
+      <div id="record"></div>
+    </section>
+  </div>
+</section>
+
+<!-- ============ DATA ============ -->
+<section id="view-data" class="view page" data-view="data" hidden>
+  <h1>The data behind Tubig</h1>
+  <p class="lede">Tubig brings together public records that are scattered across agencies, reports and news archives. All of it is preliminary and still being checked by hand.</p>
+  <div id="datasets" class="datasets"></div>
+  <h2>Service standards by provider type</h2>
+  <p>Each cell shows whether a binding rule exists for that kind of provider. Gaps are findings, not missing data: they mean no rule was found.</p>
+  <div class="table-wrap"><table id="matrix" class="matrix"></table></div>
+</section>
+
+<!-- ============ ABOUT ============ -->
+<section id="view-about" class="view page" data-view="about" hidden>
+  <h1>About Tubig</h1>
+  <p class="lede">Tubig (Filipino for "water") is a working prototype built by Gregor Posadas, a PhD student at UC Berkeley, for DevEng 203: Digital Transformation of Development (Fall 2026).</p>
+  <h2>Why it exists</h2>
+  <p>A water utility can pass every audit and still leave households without water. In 2024, Mabalacat City Water District met its water-quality target at every sampling point while its operator logged 1,490 complaints, 84% of them about no water or low pressure. Complaints go from households to the operator. Audits go from the state auditor to the district board to LWUA. The two never meet. Tubig connects them: it shows residents the rules, records their experience against those rules, and routes the gap to the office that can act on it.</p>
+  <h2>Privacy</h2>
+  <ul>
+    <li>There are no accounts, and nothing you type is saved, stored or sent to us.</li>
+    <li>When you pick a place, its name (barangay, city, province) is sent to OpenStreetMap's Nominatim service to find it on the map. Your street address is never asked for.</li>
+    <li>Your letter is written in your browser. It goes nowhere unless you send it yourself.</li>
+  </ul>
+  <h2>Limits</h2>
+  <ul>
+    <li>This is not legal advice. Rules are summarized from the author's inventory of 165 codified obligations; some are marked "not yet confirmed" because the official text has not been read.</li>
+    <li>Provider matching is by city or municipality name. Some districts serve several towns, and some towns have more than one provider. You can change the provider type at any time.</li>
+    <li>Contact details come from official websites and Citizen's Charters and can change.</li>
+  </ul>
+  <h2>Sources</h2>
+  <p>Commission on Audit annual audit reports; LWUA Data Bank; NWRB Listahang Tubig; DOH AO 2017-0010 (PNSDW 2017); PD 198; RA 11032; LWUA MC 009-25; LWUA-DBM JMC 2023-1; NWRB MC 2019-001; MWSS concession agreements; PSA PSGC (3Q 2026); news reports compiled in the author's complaints dataset. Map data © OpenStreetMap contributors, tiles © CARTO.</p>
+</section>
+</main>
+
+<footer class="foot">
+  <p>Prototype for DevEng 203, UC Berkeley, Fall 2026. Data are preliminary and under human verification. Not legal advice.</p>
+</footer>
+
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
