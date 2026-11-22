@@ -70,7 +70,7 @@ p { margin: 0; }
 .pin-tip { background: var(--card); color: var(--ink); border: 0; box-shadow: var(--shadow); font-weight: 600; border-radius: 8px; padding: 4px 10px; }
 .pin-tip::before { display: none; }
 
-.topbar { position: absolute; z-index: 800; top: calc(12px + env(safe-area-inset-top)); left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+.topbar { position: absolute; z-index: 1000; top: calc(12px + env(safe-area-inset-top)); left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
 .topbar > * { pointer-events: auto; }
 .logo { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px 0 8px; border-radius: 999px; background: var(--card); box-shadow: var(--shadow); color: var(--ink); text-decoration: none; font-weight: 700; font-size: 1.05rem; }
 .logo svg { width: 28px; height: 28px; stroke: none; }
@@ -439,3 +439,7 @@ p { margin: 0; }
 .pin-mark { display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
 .pin-mark .pin-tip { white-space: nowrap; }
 .pin-dot { width: 18px; height: 18px; border-radius: 50%; background: #CF5921; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+
+.link-btn { border: 0; background: none; padding: 4px 0; color: var(--brand); font: 500 .875rem var(--font); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.change-type span { color: var(--ink-2); font-size: .875rem; }
+.how a { color: var(--brand); font-weight: 600; }

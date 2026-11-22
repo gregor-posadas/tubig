@@ -118,8 +118,12 @@
 
   function vectorStyle(dark) {
     const base = location.href.replace(/[#?].*$/, '').replace(/[^/]*$/, '');
-    const C = dark ? { water: '#18232c', land: '#1f1e1c', coast: '#c9c1b4', built: '#3a352f', river: '#4f8fb0', casing: '#1c1a18', road: '#4a4640', text: '#f3efe7', halo: '#1f1e1c' }
-      : { water: '#d6e2e8', land: '#fbf9f4', coast: '#232120', built: '#ddd0b8', river: '#7fb8d6', casing: '#cdbfa6', road: '#ffffff', text: '#232120', halo: '#fbf9f4' };
+    const C = dark ? { water: '#18232c', land: '#1f1e1c', coast: '#c9c1b4', built: '#3a352f', river: '#4f8fb0', casing: '#1c1a18', road: '#4a4640', text: '#f3efe7', halo: '#1f1e1c', bldg: '#2d2a26', bldgLine: '#3b3732', street: '#d8d2c8' }
+      : { water: '#d6e2e8', land: '#fbf9f4', coast: '#232120', built: '#ddd0b8', river: '#7fb8d6', casing: '#cdbfa6', road: '#ffffff', text: '#232120', halo: '#fbf9f4', bldg: '#ece5d8', bldgLine: '#dcd2c0', street: '#5b5650' };
+    const Z = 12.5;   // from here in, streets and buildings come from OpenFreeMap (OpenStreetMap)
+    const ofmRoad = (id, cls, cw, rw) => [
+      { id: id + '-casing', type: 'line', source: 'ofm', 'source-layer': 'transportation', minzoom: Z, filter: ['match', ['get', 'class'], cls, true, false], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.casing, 'line-width': cw } },
+      { id, type: 'line', source: 'ofm', 'source-layer': 'transportation', minzoom: Z, filter: ['match', ['get', 'class'], cls, true, false], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.road, 'line-width': rw } }];
     const w = (z0, w0, z1, w1) => ['interpolate', ['exponential', 1.5], ['zoom'], z0, w0, z1, w1];
     const roads = (id, cls, minz, cw, rw) => [
       { id: id + '-casing', type: 'line', source: 'base', 'source-layer': 'roads', minzoom: minz, filter: ['match', ['get', 'class'], cls, true, false], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.casing, 'line-width': cw } },
@@ -128,17 +132,24 @@
       version: 8, glyphs: base + 'fonts/{fontstack}/{range}.pbf',
       sources: {
         land: { type: 'vector', url: 'pmtiles://' + base + 'tiles/ph-land.pmtiles', attribution: 'Coastline: PSA/NAMRIA via OCHA HDX' },
-        base: { type: 'vector', url: 'pmtiles://' + base + 'tiles/ph-base.pmtiles', attribution: '© OpenStreetMap contributors · Open Buildings (Google, Microsoft, via VIDA)' }
+        base: { type: 'vector', url: 'pmtiles://' + base + 'tiles/ph-base.pmtiles', attribution: '© OpenStreetMap contributors · Open Buildings (Google, Microsoft, via VIDA)' },
+        ofm: { type: 'vector', url: 'https://tiles.openfreemap.org/planet', attribution: 'OpenFreeMap © OpenMapTiles' }
       },
       layers: [
         { id: 'water', type: 'background', paint: { 'background-color': C.water } },
         { id: 'land', type: 'fill', source: 'land', 'source-layer': 'land', paint: { 'fill-color': C.land, 'fill-antialias': false } },
         { id: 'builtup', type: 'fill', source: 'base', 'source-layer': 'builtup', maxzoom: 12, paint: { 'fill-color': C.built, 'fill-antialias': false, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 4, ['*', 0.33, ['get', 'd']], 9, ['*', 0.25, ['get', 'd']], 11.5, 0] } },
-        { id: 'river', type: 'line', source: 'base', 'source-layer': 'rivers', minzoom: 9, paint: { 'line-color': C.river, 'line-width': w(9, 0.6, 16, 3) } },
-        ...roads('road-minor', ['minor'], 12, w(12, 1.7, 18, 10), w(12, 0.5, 18, 8)),
-        ...roads('road-mid', ['secondary', 'tertiary', 'mid'], 9, w(9, 1.7, 18, 14), w(9, 0.5, 18, 12)),
-        ...roads('road-major', ['motorway', 'trunk', 'primary', 'major'], 5, w(5, 1.6, 18, 18), w(5, 0.5, 18, 16)),
+        { id: 'ofm-water', type: 'fill', source: 'ofm', 'source-layer': 'water', minzoom: Z, paint: { 'fill-color': C.water } },
+        { id: 'ofm-waterway', type: 'line', source: 'ofm', 'source-layer': 'waterway', minzoom: Z, paint: { 'line-color': C.river, 'line-width': w(12, 0.8, 17, 3) } },
+        { id: 'river', type: 'line', source: 'base', 'source-layer': 'rivers', minzoom: 9, maxzoom: Z, paint: { 'line-color': C.river, 'line-width': w(9, 0.6, 16, 3) } },
+        { id: 'ofm-building', type: 'fill', source: 'ofm', 'source-layer': 'building', minzoom: 13, paint: { 'fill-color': C.bldg, 'fill-outline-color': C.bldgLine, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0.6, 14, 1] } },
+        ...roads('road-mid', ['secondary', 'tertiary', 'mid'], 9, w(9, 1.7, 18, 14), w(9, 0.5, 18, 12)).map(l => Object.assign(l, { maxzoom: Z })),
+        ...roads('road-major', ['motorway', 'trunk', 'primary', 'major'], 5, w(5, 1.6, 18, 18), w(5, 0.5, 18, 16)).map(l => Object.assign(l, { maxzoom: Z })),
+        ...ofmRoad('ofm-minor', ['minor', 'service', 'track'], w(12, 1.2, 18, 12), w(12, 0.4, 18, 10)),
+        ...ofmRoad('ofm-mid', ['secondary', 'tertiary'], w(12, 2.2, 18, 16), w(12, 1.2, 18, 14)),
+        ...ofmRoad('ofm-major', ['motorway', 'trunk', 'primary'], w(12, 3, 18, 20), w(12, 2, 18, 18)),
         { id: 'coast', type: 'line', source: 'land', 'source-layer': 'coast', layout: { 'line-join': 'round' }, paint: { 'line-color': C.coast, 'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.6, 10, 1, 16, 1.5] } },
+        { id: 'street-label', type: 'symbol', source: 'ofm', 'source-layer': 'transportation_name', minzoom: 14.5, layout: { 'symbol-placement': 'line', 'text-field': ['coalesce', ['get', 'name:en'], ['get', 'name']], 'text-font': ['Noto Sans Regular'], 'text-size': 11.5 }, paint: { 'text-color': C.street, 'text-halo-color': C.halo, 'text-halo-width': 1.5 } },
         { id: 'place-label', type: 'symbol', source: 'base', 'source-layer': 'places', layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Medium'], 'text-size': ['match', ['get', 'place'], 'city', 13, 11.5], 'text-padding': 4 }, paint: { 'text-color': C.text, 'text-halo-color': C.halo, 'text-halo-width': 1.5 } }
       ]
     };
@@ -173,11 +184,11 @@
     lib.addProtocol('pmtiles', proto.tile);
     const dark = () => document.documentElement.dataset.theme === 'dark';
     const map = new lib.Map({ container: 'map', style: vectorStyle(dark()), bounds: [[PH[0][1], PH[0][0]], [PH[1][1], PH[1][0]]], fitBoundsOptions: { padding: padBox() },
-      minZoom: 3.5, maxZoom: 14, maxBounds: [[92, -32], [152, 38]], dragRotate: false, pitchWithRotate: false, touchPitch: false, attributionControl: { compact: true }, fadeDuration: RM ? 0 : 300 });
+      minZoom: 3.5, maxZoom: 17.5, maxBounds: [[92, -32], [152, 38]], dragRotate: false, pitchWithRotate: false, touchPitch: false, attributionControl: { compact: true }, fadeDuration: RM ? 0 : 300 });
     if (map.touchZoomRotate) map.touchZoomRotate.disableRotation();
     if (map.keyboard) map.keyboard.disableRotation();
     map.addControl(new lib.NavigationControl({ showCompass: false }), 'top-right');
-    await new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('map timeout')), 9000); map.once('load', () => { clearTimeout(t); res(); }); map.once('error', e => { if (!map.isStyleLoaded()) { clearTimeout(t); rej(e.error || e); } }); });
+    await new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('map timeout')), 9000); map.once('load', () => { clearTimeout(t); res(); }); map.on('error', e => { if (e && e.sourceId === 'ofm') return; if (!map.isStyleLoaded()) { clearTimeout(t); rej(e.error || e); } }); });
     let pin = null, marker = null;
     const addPinLayers = () => {
       if (!pin || map.getSource('pin')) return;
@@ -193,8 +204,8 @@
         if (marker) marker.remove();
         const el = document.createElement('div'); el.className = 'pin-mark'; el.innerHTML = `<span class="pin-tip">${esc(label)}</span><span class="pin-dot"></span>`;
         marker = new lib.Marker({ element: el, anchor: 'bottom', offset: [0, 9] }).setLngLat([lon, lat]).addTo(map);
-        const ring = circleRing(lat, lon, pinR(exact) * 1.6), xs = ring.map(p => p[0]), ys = ring.map(p => p[1]);
-        map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: padBox(), maxZoom: 13.5, duration: now || RM ? 0 : 1400 });
+        const ring = circleRing(lat, lon, pinR(exact) * 1.25), xs = ring.map(p => p[0]), ys = ring.map(p => p[1]);
+        map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: padBox(), maxZoom: 15, duration: now || RM ? 0 : 1400 });
       },
       clear() { pin = null; removePinLayers(); if (marker) { marker.remove(); marker = null; } },
       resize() { map.resize(); },
@@ -416,6 +427,7 @@
         <ul class="how">
           <li><span class="hi">${I.pin}</span><div><b>Find your barangay</b><span>We find your provider and its rules.</span></div></li>
           <li><span class="hi">${I.list}</span><div><b>Answer 7 quick questions</b><span>Hours, pressure, quality, outages, bills.</span></div></li>
+          <li><span class="hi">${I.flask}</span><div><b>Document it</b><span>Check it isn't your pipes, then keep a water log. <a href="#/guide">See how</a></span></div></li>
           <li><span class="hi">${I.mail}</span><div><b>Send a complaint</b><span>A ready letter, script and contacts.</span></div></li>
         </ul>
         <p class="privacy">${I.lock}No sign-up. Your answers stay on your device.</p>
@@ -495,7 +507,8 @@
     const w = wd(), P = D.ob.providers;
     return `<div class="place"><span class="pi">${I.drop}</span><div><h2>${esc(providerName())}</h2><p>${esc(placeLabel())}</p>
       ${S.ptype === 'wd' && w && w.op ? `<span class="op-chip">Run by ${esc(w.op)}</span>` : ''}
-      <div class="change-type"><label for="ptype">Provider type:</label><select id="ptype">${Object.entries(P).map(([k, v]) => `<option value="${k}" ${k === S.ptype ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select></div></div></div>`;
+      ${(() => { const sure = detectType(muni()) !== 'lgu', sel = `<label for="ptype" class="sr-only">Provider type</label><select id="ptype">${Object.entries(P).map(([k, v]) => `<option value="${k}" ${k === S.ptype ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select>`;
+        return sure ? `<div class="change-type"><button type="button" class="link-btn" id="wrong-prov">Not your provider?</button><span id="ptype-wrap" hidden>${sel}</span></div>` : `<div class="change-type"><span>Who supplies your water?</span>${sel}</div>`; })()}</div></div>`;
   }
   function viewOwed() {
     const m = muni(), dims = D.ob.dimensions;
@@ -519,6 +532,7 @@
       `<button class="btn" id="to-bill">${I.bill}Check bill</button><button class="btn btn-primary" id="to-report">Report a problem</button>`, 'half');
     $('#back').onclick = () => go('#/');
     $('#ptype').onchange = e => { S.ptype = e.target.value; save(); viewOwed(); toast('Rules updated'); };
+    const wp = $('#wrong-prov'); if (wp) wp.onclick = () => { wp.hidden = true; $('#ptype-wrap').hidden = false; $('#ptype').focus(); };
     $$('[data-open]').forEach(b => b.onclick = () => { const d = $('#r-' + b.dataset.open); d.open = true; if (!isDesk()) setSheet('full'); setTimeout(() => d.scrollIntoView({ block: 'start', behavior: RM ? 'auto' : 'smooth' }), 320); });
     $('#to-report').onclick = () => go('#/report/1');
     $('#to-bill').onclick = () => go('#/bill');
@@ -638,6 +652,7 @@
       <p class="h-sub">To ${esc(providerName())}${issues.length ? `, about ${issues.length} issue${issues.length > 1 ? 's' : ''}` : ''}.</p>
       <div class="seg" role="tablist">${Object.entries(tabs).map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${k === actTab}">${l}</button>`).join('')}</div>
       <div role="tabpanel">${body}</div>
+      <a class="track-cta" href="#/guide">${I.flask}<span><b>Gather proof</b> Check it isn't your pipes, keep a water log</span>${I.chev}</a>
       <a class="track-cta" href="#/track">${I.clock}<span><b>Sent it or called?</b> Track when they have to answer</span>${I.chev}</a>
       <a class="track-cta" href="#/petition">${I.list}<span><b>Neighbors have it too?</b> Make a joint complaint for your barangay or council</span>${I.chev}</a>`, foot, 'full');
     $('#back').onclick = () => go('#/gap');
@@ -833,7 +848,7 @@ Contact: [phone or email]`;
         <div class="rbody"><ol class="gsteps">${g.steps.map(t => `<li>${esc(t)}</li>`).join('')}</ol><p class="src">Source: ${esc(g.src)}</p></div></details>`).join('')}</div>
       <p class="src-line">Write the date, time and place on everything. Keep the original photos.</p>`,
       `<a class="btn" href="#/log">${I.list}Water log</a><button class="btn btn-primary" id="to-report">Report a problem</button>`, 'full');
-    $('#back').onclick = () => history.length > 1 ? history.back() : go('#/owed');
+    $('#back').onclick = () => history.length > 1 ? history.back() : go(muni() ? '#/owed' : '#/');
     $('#to-report').onclick = () => go('#/report/1');
   }
 
@@ -1099,9 +1114,9 @@ Signatures are attached.`;
     document.title = 'Tubig · Check your water service';
     if (['owed', 'report', 'gap', 'act', 'bill', 'track', 'guide', 'log', 'petition'].includes(v)) {
       await loadPlaces();
-      if (!muni()) { go('#/'); return; }
+      if (!muni() && !['guide', 'log'].includes(v)) { go('#/'); return; }
       ({ owed: viewOwed, report: () => viewReport(+arg || 1), gap: viewGap, act: viewAct, bill: viewBill, track: viewTrack, guide: viewGuide, log: viewLog, petition: viewPetition })[v]();
-      placeOnMap();
+      if (muni()) placeOnMap();
     } else viewSearch();
     if (v) $('#panel').focus({ preventScroll: true });
   }
