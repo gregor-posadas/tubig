@@ -41,6 +41,7 @@
     tool: '<svg viewBox="0 0 24 24"><path d="M14 6a4 4 0 0 0-5 5l-6 6 3 3 6-6a4 4 0 0 0 5-5l-3 3-3-3z"/></svg>',
     plug: '<svg viewBox="0 0 24 24"><path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4"/></svg>',
     alert: '<svg viewBox="0 0 24 24"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.01"/></svg>',
+    eye: '<svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>',
     info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>',
     lock: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
     mail: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
@@ -385,16 +386,17 @@
 
   /* ---------- questions & evaluation ---------- */
   const Q = [
-    { id: 'hours', type: 'one', title: 'How many hours a day do you have water?', help: 'Think of a typical day lately.',
+    { id: 'hours', type: 'one', title: 'How many hours a day do you have water?', help: 'Think of a typical day lately.', how: 'hours',
       opts: [['24', 'All day'], ['18', '18 to 23 hours'], ['12', '12 to 17 hours'], ['7', '7 to 11 hours'], ['1', '1 to 6 hours'], ['0', 'No water at all']] },
     { id: 'floors', type: 'one', title: 'How many floors does your home have?', help: 'Low pressure shows first on upper floors.',
       opts: [['1', 'One floor'], ['2', 'Two floors'], ['3', 'Three or more']] },
-    { id: 'pressure', type: 'one', showIf: a => a.floors === '1', title: 'How strong is the flow?',
-      opts: [['strong', 'Strong'], ['weak', 'Weak, but it flows'], ['trickle', 'A trickle'], ['none', 'Nothing comes out']] },
-    { id: 'pressure', type: 'one', showIf: a => a.floors !== '1', title: 'How strong is the flow?',
-      opts: [['strong', 'Strong, even upstairs'], ['ground', 'OK on the ground floor only'], ['trickle', 'A trickle'], ['none', 'Nothing comes out']] },
-    { id: 'quality', type: 'many', title: 'Anything wrong with the water?', help: 'Choose all that apply.',
-      opts: [['color', 'Brown or yellow color'], ['cloudy', 'Cloudy'], ['particles', 'Sand, rust or bits'], ['smell', 'Bad smell'], ['taste', 'Bad taste'], ['sick', 'Someone got sick'], ['ok', 'Nothing wrong']] },
+    // Bands from the 1-liter bucket test: under 7 s is at least ~9 L/min (a UK utility's low-flow line); over 30 s is under 2 L/min.
+    { id: 'pressure', type: 'one', showIf: a => a.floors === '1', title: 'How strong is the flow?', help: 'Time how long a 1-liter bottle takes to fill at the tap nearest the meter.', how: 'pressure',
+      opts: [['strong', 'Strong', 'Fills in under 7 seconds'], ['weak', 'Weak, but it flows', '7 to 30 seconds'], ['trickle', 'A trickle', 'Over 30 seconds'], ['none', 'Nothing comes out']] },
+    { id: 'pressure', type: 'one', showIf: a => a.floors !== '1', title: 'How strong is the flow?', help: 'Time how long a 1-liter bottle takes to fill, downstairs and upstairs.', how: 'pressure',
+      opts: [['strong', 'Strong, even upstairs', 'Under 7 seconds on every floor'], ['ground', 'OK on the ground floor only', 'Slow or nothing upstairs'], ['trickle', 'A trickle', 'Over 30 seconds, even downstairs'], ['none', 'Nothing comes out']] },
+    { id: 'quality', type: 'many', title: 'Anything wrong with the water?', help: 'Choose all that apply.', how: 'quality',
+      opts: [['color', 'Brown or yellow color'], ['cloudy', 'Cloudy', 'Still cloudy after 3 minutes in a glass'], ['particles', 'Sand, rust or bits'], ['smell', 'Bad smell'], ['taste', 'Bad taste'], ['sick', 'Someone got sick'], ['ok', 'Nothing wrong']] },
     { id: 'outage', type: 'one', title: 'Longest time without water in the last 3 months?',
       opts: [['none', 'Never ran out'], ['lt1', 'Less than a day'], ['1', '1 to 3 days'], ['4', '4 to 14 days'], ['15', '15 days or more']] },
     { id: 'charged', type: 'one', showIf: a => a.outage === '15', title: 'Were you still billed the minimum charge for that time?',
@@ -404,7 +406,7 @@
     { id: 'connect', type: 'one', title: 'Waiting for a new connection?',
       opts: [['no', 'No'], ['short', 'Yes, under a month'], ['long', 'Yes, over a month']] }
   ];
-  const LABEL = {}; Q.forEach(q => LABEL[q.id] = Object.assign(LABEL[q.id] || {}, Object.fromEntries(q.opts)));
+  const LABEL = {}; Q.forEach(q => LABEL[q.id] = Object.assign(LABEL[q.id] || {}, Object.fromEntries(q.opts.map(([v, l]) => [v, l]))));
   const activeQ = () => Q.filter(q => !q.showIf || q.showIf(S.answers));
   const EXAMPLE = { hours: '7', floors: '2', pressure: 'trickle', quality: ['color', 'particles'], outage: '1', complaint: 'slow', connect: 'no' };
 
@@ -635,8 +637,9 @@
       <div class="progress" aria-hidden="true">${qs.map((_, i) => `<span class="${i < n ? 'on' : ''}"></span>`).join('')}</div>
       <p class="q-count">Question ${n} of ${qs.length}</p>
       <h2 class="q-title" id="q-title">${esc(q.title)}</h2>${q.help ? `<p class="q-help">${esc(q.help)}</p>` : ''}
+      ${howHTML(q.how)}
       <div class="choices" role="${q.type === 'many' ? 'group' : 'radiogroup'}" aria-labelledby="q-title">
-      ${q.opts.map(([v, l]) => `<button type="button" class="choice ${q.type === 'many' ? 'multi' : ''}" data-v="${v}" role="${q.type === 'many' ? 'checkbox' : 'radio'}" aria-checked="${sel(v)}"><span class="cmark">${I.check}</span>${esc(l)}</button>`).join('')}
+      ${q.opts.map(([v, l, h]) => `<button type="button" class="choice ${q.type === 'many' ? 'multi' : ''}" data-v="${v}" role="${q.type === 'many' ? 'checkbox' : 'radio'}" aria-checked="${sel(v)}"><span class="cmark">${I.check}</span><span class="ctext">${esc(l)}${h ? `<small>${esc(h)}</small>` : ''}</span></button>`).join('')}
       </div>
       ${n === 1 ? `<button class="btn btn-quiet skip-q" id="example">Just exploring? Use example answers</button>` : ''}`,
       `<button class="btn" id="skip">Skip</button><button class="btn btn-primary" id="next" ${q.type === 'many' && !(S.answers[q.id] || []).length ? 'disabled' : ''}>${isLast ? 'See results' : 'Next'}</button>`, 'full');
@@ -644,6 +647,7 @@
     $('#back').onclick = () => n === 1 ? go('#/owed') : go('#/report/' + (n - 1));
     $('#skip').onclick = () => { delete S.answers[q.id]; save(); next(); };
     $('#next').onclick = next;
+    const hb = $('#how'); if (hb) hb.onclick = () => { const open = hb.getAttribute('aria-expanded') !== 'true'; hb.setAttribute('aria-expanded', open); $('#how-panel').hidden = !open; };
     const ex = $('#example'); if (ex) ex.onclick = () => { S.answers = JSON.parse(JSON.stringify(EXAMPLE)); save(); toast('Example answers loaded'); go('#/gap'); };
     $$('.choice').forEach(b => b.onclick = () => {
       const v = b.dataset.v;
@@ -929,13 +933,20 @@ Contact: [phone or email]`;
       'Ask them to record it. Health offices track water-borne illness by barangay.'
     ], src: 'DOH' }
   ];
+  const illStrip = id => (window.TUBIG_ILL || {})[id] ? `<div class="ill-strip">${window.TUBIG_ILL[id].map((p, j) => `<figure class="ill-panel"><span class="ill-n" aria-hidden="true">${j + 1}</span>${p.svg}<figcaption>${esc(p.cap)}</figcaption></figure>`).join('')}</div>` : '';
+  // "How to check" on a question: the guide's pictures and first steps for that problem, shown in place.
+  function howHTML(id) {
+    const g = id && GUIDE.find(x => x.id === id); if (!g) return '';
+    return `<button type="button" class="how-btn" id="how" aria-expanded="false" aria-controls="how-panel"><span class="how-i">${I.eye}</span>How to check</button>
+      <div class="how-panel" id="how-panel" hidden>${illStrip(id)}<ol class="gsteps">${g.steps.slice(0, 2).map(t => `<li>${esc(t)}</li>`).join('')}</ol><a class="how-more" href="#/guide">Full guide to documenting it</a></div>`;
+  }
   function viewGuide() {
     render(`<button class="back" id="back">${I.left}Back</button>
       <h2 class="h-title">Document the problem</h2>
       <p class="h-sub">Good records get faster action. They also show the problem is the supply, not your pipes.</p>
       <a class="track-cta" href="#/log">${I.list}<span><b>Keep a water log</b> ${S.log && S.log.length ? `${S.log.length} day${S.log.length > 1 ? 's' : ''} logged` : 'Takes a minute a day'}</span>${I.chev}</a>
       <div class="rules guide">${GUIDE.map((g, i) => `<details class="rule" ${i === 0 ? 'open' : ''}><summary><span class="ricon binding">${I[g.icon]}</span><span><b>${esc(g.title)}</b></span>${I.chev}</summary>
-        <div class="rbody">${(window.TUBIG_ILL || {})[g.id] ? `<div class="ill-strip">${window.TUBIG_ILL[g.id].map((p, j) => `<figure class="ill-panel"><span class="ill-n" aria-hidden="true">${j + 1}</span>${p.svg}<figcaption>${esc(p.cap)}</figcaption></figure>`).join('')}</div>` : ''}<ol class="gsteps">${g.steps.map(t => `<li>${esc(t)}</li>`).join('')}</ol><p class="src">Source: ${esc(g.src)}</p></div></details>`).join('')}</div>
+        <div class="rbody">${illStrip(g.id)}<ol class="gsteps">${g.steps.map(t => `<li>${esc(t)}</li>`).join('')}</ol><p class="src">Source: ${esc(g.src)}</p></div></details>`).join('')}</div>
       <p class="src-line">Write the date, time and place on everything. Keep the original photos.</p>`,
       `<a class="btn" href="#/log">${I.list}Water log</a><button class="btn btn-primary" id="to-report">Report a problem</button>`, 'full');
     $('#back').onclick = () => history.length > 1 ? history.back() : go(muni() ? '#/owed' : '#/');

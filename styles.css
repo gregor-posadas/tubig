@@ -226,6 +226,16 @@ p { margin: 0; }
 .choice[aria-pressed="true"], .choice[aria-checked="true"] { border-color: var(--brand); background: var(--brand-tint-2); }
 .choice[aria-pressed="true"] .cmark, .choice[aria-checked="true"] .cmark { background: var(--brand); border-color: var(--brand); }
 .choice[aria-pressed="true"] .cmark svg, .choice[aria-checked="true"] .cmark svg { opacity: 1; }
+.choice .ctext { display: flex; flex-direction: column; gap: 2px; }
+.choice .ctext small { font-size: .85rem; font-weight: 400; color: var(--ink-2); }
+.how-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 2px; padding: 0 12px 0 0; border: 0; background: none; color: var(--ink-2); font: inherit; font-size: .925rem; font-weight: 600; cursor: pointer; }
+.how-btn:hover { color: var(--ink); }
+.how-i { width: 30px; height: 30px; flex: none; border-radius: 50%; background: var(--gray-bg); color: var(--ink-2); display: grid; place-items: center; transition: background 120ms, color 120ms; }
+.how-i svg { width: 18px; height: 18px; }
+.how-btn[aria-expanded="true"] .how-i { background: var(--brand); color: var(--card); }
+.how-panel { margin: 4px 0 6px; padding: 12px 12px 10px; border-radius: var(--r); background: var(--card-2); border: 1px solid var(--line); }
+.how-panel .gsteps { margin-bottom: 6px; }
+.how-more { display: inline-block; padding: 8px 0; font-weight: 600; font-size: .9rem; }
 .choice .cemoji { margin-left: auto; color: var(--ink-3); font-size: .85rem; }
 .skip-q { margin-top: 10px; }
 .slide-in { animation: slideIn 240ms var(--ease); }
