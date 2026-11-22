@@ -309,7 +309,11 @@
   const Q = [
     { id: 'hours', type: 'one', title: 'How many hours a day do you have water?', help: 'Think of a typical day lately.',
       opts: [['24', 'All day'], ['18', '18 to 23 hours'], ['12', '12 to 17 hours'], ['7', '7 to 11 hours'], ['1', '1 to 6 hours'], ['0', 'No water at all']] },
-    { id: 'pressure', type: 'one', title: 'How strong is the flow?',
+    { id: 'floors', type: 'one', title: 'How many floors does your home have?', help: 'Low pressure shows first on upper floors.',
+      opts: [['1', 'One floor'], ['2', 'Two floors'], ['3', 'Three or more']] },
+    { id: 'pressure', type: 'one', showIf: a => a.floors === '1', title: 'How strong is the flow?',
+      opts: [['strong', 'Strong'], ['weak', 'Weak, but it flows'], ['trickle', 'A trickle'], ['none', 'Nothing comes out']] },
+    { id: 'pressure', type: 'one', showIf: a => a.floors !== '1', title: 'How strong is the flow?',
       opts: [['strong', 'Strong, even upstairs'], ['ground', 'OK on the ground floor only'], ['trickle', 'A trickle'], ['none', 'Nothing comes out']] },
     { id: 'quality', type: 'many', title: 'Anything wrong with the water?', help: 'Choose all that apply.',
       opts: [['color', 'Brown or yellow color'], ['cloudy', 'Cloudy'], ['particles', 'Sand, rust or bits'], ['smell', 'Bad smell'], ['taste', 'Bad taste'], ['sick', 'Someone got sick'], ['ok', 'Nothing wrong']] },
@@ -322,9 +326,9 @@
     { id: 'connect', type: 'one', title: 'Waiting for a new connection?',
       opts: [['no', 'No'], ['short', 'Yes, under a month'], ['long', 'Yes, over a month']] }
   ];
-  const LABEL = {}; Q.forEach(q => LABEL[q.id] = Object.fromEntries(q.opts));
+  const LABEL = {}; Q.forEach(q => LABEL[q.id] = Object.assign(LABEL[q.id] || {}, Object.fromEntries(q.opts)));
   const activeQ = () => Q.filter(q => !q.showIf || q.showIf(S.answers));
-  const EXAMPLE = { hours: '7', pressure: 'trickle', quality: ['color', 'particles'], outage: '1', complaint: 'slow', connect: 'no' };
+  const EXAMPLE = { hours: '7', floors: '2', pressure: 'trickle', quality: ['color', 'particles'], outage: '1', complaint: 'slow', connect: 'no' };
 
   function evaluate() {
     const a = S.answers, t = S.ptype, out = [];
@@ -339,7 +343,7 @@
       const r = ruleFor(dim('pressure')), you = LABEL.pressure[a.pressure];
       if (a.pressure === 'strong') push('pressure', you, 'met');
       else if (r.psi == null) push('pressure', you, 'norule', `No minimum is set for your provider. ${tgt('pressure')}, but it is only a target.`, 'Measure the pressure at my connection and tell me the result.');
-      else if (a.pressure === 'ground') push('pressure', you, 'check', `${r.psi} psi lifts water about ${Math.round(r.psi * 0.703 * 10) / 10} m, roughly a second-floor tap. A gauge reading would settle it.`, 'Measure the pressure at my connection and tell me the result.');
+      else if (a.pressure === 'ground' || a.pressure === 'weak') push('pressure', you, 'check', `${r.psi} psi lifts water about ${Math.round(r.psi * 0.703 * 10) / 10} m, roughly a second-floor tap. A gauge reading would settle it.`, 'Measure the pressure at my connection and tell me the result.');
       else push('pressure', you, 'notmet', `The rule is at least ${r.psi} psi.`, `Restore at least ${r.psi} psi at my connection.`);
     }
     if (a.quality && a.quality.length) {
@@ -429,7 +433,7 @@
         <p class="section-label">How it works</p>
         <ul class="how">
           <li><span class="hi">${I.pin}</span><div><b>Find your barangay</b><span>We find your provider and its rules.</span></div></li>
-          <li><span class="hi">${I.list}</span><div><b>Answer 6 quick questions</b><span>Hours, pressure, quality, outages, bills.</span></div></li>
+          <li><span class="hi">${I.list}</span><div><b>Answer a few quick questions</b><span>Hours, pressure, quality, outages, bills.</span></div></li>
           <li><span class="hi">${I.flask}</span><div><b>Document it</b><span>Check it isn't your pipes, then keep a water log. <a href="#/guide">See how</a></span></div></li>
           <li><span class="hi">${I.mail}</span><div><b>Send a complaint</b><span>A ready letter, script and contacts.</span></div></li>
         </ul>
@@ -520,7 +524,7 @@
     const row = d => { const r = ruleFor(d); return `<details class="rule" id="r-${d.id}"><summary><span class="ricon ${r.status}">${ST_ICON[r.status]}</span><span><b>${esc(d.title)}${r.status === 'unconfirmed' ? '<span class="tag-mini">text not yet confirmed</span>' : ''}</b><span class="rsum">${esc(shortRule(d.id) || (r.status === 'none' ? 'No rule' : 'Required'))}</span></span>${I.chev}</summary>
       <div class="rbody"><p>${esc(r.text)}</p>${r.status === 'none' && d.target ? `<p>For comparison: ${esc(d.target.text)} (a target, not a requirement)</p>` : ''}
       ${d.id === 'bill' && S.ptype === 'wd' ? `<p><a href="#/bill">Check your bill against the tariff</a></p>` : ''}
-      ${d.id === 'complaint' && isMCWD() ? `<p>Mabalacat's Citizen's Charter: ${esc(D.mcwd.contacts.serviceRequest)}</p>` : ''}
+      ${d.id === 'complaint' && isMCWD() ? `<p>Mabalacat's Citizen's Charter: ${esc(D.mcwd.contacts.serviceRequest)} <a href="${esc(D.mcwd.contacts.charter)}" target="_blank" rel="noopener">Read the charter (PDF, p. 30)</a></p>` : ''}
       ${r.cite ? `<p class="src">Source: ${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.cite)}</a>` : esc(r.cite)}</p>` : ''}</div></details>`; };
     const noHrs = ruleFor(dim('hours')).status === 'none';
     render(`<button class="back" id="back">${I.left}Search</button>
@@ -571,7 +575,7 @@
         $$('.choice').forEach(c => c.setAttribute('aria-checked', (S.answers[q.id] || []).includes(c.dataset.v)));
         $('#next').disabled = !(S.answers[q.id] || []).length;
       } else {
-        S.answers[q.id] = v; if (q.id === 'outage' && v !== '15') delete S.answers.charged; save();
+        S.answers[q.id] = v; if (q.id === 'outage' && v !== '15') delete S.answers.charged; if (q.id === 'floors') { if (v === '1' && S.answers.pressure === 'ground') delete S.answers.pressure; if (v !== '1' && S.answers.pressure === 'weak') delete S.answers.pressure; } save();
         $$('.choice').forEach(c => c.setAttribute('aria-checked', c.dataset.v === v));
         setTimeout(next, RM ? 0 : 220);
       }
@@ -621,7 +625,7 @@
       <div class="verdict-hero"><p class="vh-big">${esc(head)}</p>
         <div class="vh-row">${['notmet', 'check', 'norule', 'met'].filter(k => c(k)).map(k => `<span><span class="dot ${k}"></span>${c(k)} ${VLAB[k].toLowerCase()}</span>`).join('')}</div></div>
       ${othersHTML(rows)}
-      <a class="track-cta" href="#/guide">${I.list}<span><b>Before you send</b> Check it isn't your pipes, and gather proof</span>${I.chev}</a>
+      <a class="track-cta" href="#/guide">${I.list}<span><b>Optional: check it isn't your pipes</b> A 2-minute check before you send</span>${I.chev}</a>
       <ul class="findings">${rows.map(r => `<li class="finding"><div class="f-top"><span class="f-name">${esc(r.title)}</span><span class="status ${r.v}"><span class="dot ${r.v}"></span>${VLAB[r.v]}</span></div>
         <div class="f-compare"><div><p class="k">${r.auto ? 'Public record' : 'You said'}</p><p class="v">${esc(r.you)}</p></div><div><p class="k">The rule</p><p class="v">${esc(r.short || 'No rule')}</p></div></div>
         ${r.note ? `<p class="f-note">${esc(r.note)}</p>` : ''}</li>`).join('')}</ul>`,
@@ -655,8 +659,8 @@
       <p class="h-sub">To ${esc(providerName())}${issues.length ? `, about ${issues.length} issue${issues.length > 1 ? 's' : ''}` : ''}.</p>
       <div class="seg" role="tablist">${Object.entries(tabs).map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${k === actTab}">${l}</button>`).join('')}</div>
       <div role="tabpanel">${body}</div>
-      <a class="track-cta" href="#/guide">${I.flask}<span><b>Gather proof</b> Check it isn't your pipes, keep a water log</span>${I.chev}</a>
       <a class="track-cta" href="#/track">${I.clock}<span><b>Sent it or called?</b> Track when they have to answer</span>${I.chev}</a>
+      <a class="track-cta" href="#/log">${I.flask}<span><b>Keep records while you wait</b> A water log helps if you need to escalate</span>${I.chev}</a>
       <a class="track-cta" href="#/petition">${I.list}<span><b>Neighbors have it too?</b> Make a joint complaint for your barangay or council</span>${I.chev}</a>`, foot, 'full');
     $('#back').onclick = () => go('#/gap');
     $$('[data-tab]').forEach(b => b.onclick = () => { actTab = b.dataset.tab; viewAct(); });
@@ -745,6 +749,7 @@ Contact: [phone or email]`;
     const sent = parseD(t.sent), steps = [];
     const p = S.ptype;
     steps.push({ id: 'ref', title: 'Get a reference number', rule: 'Ask for it when you send or call. It proves when you complained.', due: sent, done: !!t.ref });
+    steps.push({ id: 'log', title: 'Keep a water log while you wait', rule: 'Note hours, flow and color each day. If you escalate, the log is your evidence.', due: sent, noDue: true });
     if (p === 'wd' || p === 'lgu') {
       const mc = isMCWD();
       steps.push({ id: 'act', title: mc ? 'Repair or action on your request' : 'Action on your request',
@@ -764,7 +769,8 @@ Contact: [phone or email]`;
       steps.push({ id: 'reply', title: 'Answer to your complaint', rule: p === 'private' ? 'NWRB rules give the company 10 days to answer a written, sworn complaint filed with NWRB.' : 'No national deadline applies to this provider type.', due: addDays(sent, 10),
         next: p === 'private' ? { label: 'NWRB', href: 'https://nwrb.gov.ph/', text: 'File a written, sworn complaint with the National Water Resources Board.' } : null });
     }
-    return steps.map(s => Object.assign(s, { done: s.id === 'ref' ? !!t.ref : !!(t.done || {})[s.id], late: s.id !== 'ref' && !(t.done || {})[s.id] && today() > s.due }));
+    const nLog = (S.log || []).filter(e => e.date >= t.sent).length;
+    return steps.map(s => Object.assign(s, { done: s.id === 'ref' ? !!t.ref : s.id === 'log' ? nLog >= 3 : !!(t.done || {})[s.id], late: !s.noDue && s.id !== 'ref' && !(t.done || {})[s.id] && today() > s.due, logged: nLog }));
   }
   function viewTrack() {
     const t = S.track;
@@ -786,9 +792,9 @@ Contact: [phone or email]`;
       <p class="h-sub">${esc(t.via)} to ${esc(providerName())}, ${esc(shortD(parseD(t.sent)))}${t.ref ? ` · Ref. ${esc(t.ref)}` : ''}</p>
       ${late ? `<div class="callout">${I.alert}<p><b>${esc(late.title)} is overdue.</b> ${esc(late.next.text)}</p></div>` : ''}
       <ol class="timeline">${steps.map(s => `<li class="${s.done ? 'done' : s.late ? 'late' : ''}"><span class="tl-dot" aria-hidden="true">${s.done ? I.check : ''}</span><div>
-        <div class="tl-top"><b>${esc(s.title)}</b><span class="tl-due">${s.done ? 'Done' : s.late ? 'Overdue' : s.id === 'ref' ? 'To do' : 'Due ' + esc(shortD(s.due))}</span></div>
+        <div class="tl-top"><b>${esc(s.title)}</b><span class="tl-due">${s.id === 'log' ? `${s.logged} day${s.logged === 1 ? '' : 's'} logged` : s.done ? 'Done' : s.late ? 'Overdue' : s.id === 'ref' ? 'To do' : 'Due ' + esc(shortD(s.due))}</span></div>
         <p>${esc(s.rule)}</p>
-        <div class="tl-act">${s.id === 'ref' ? (s.done ? '' : `<label class="sr-only" for="t-ref2">Reference number</label><input id="t-ref2" class="select tl-in" placeholder="Reference number"><button class="btn btn-sm" id="t-ref-save">Save</button>`)
+        <div class="tl-act">${s.id === 'log' ? `<a class="btn btn-sm" href="#/log">Open the log</a>` : s.id === 'ref' ? (s.done ? '' : `<label class="sr-only" for="t-ref2">Reference number</label><input id="t-ref2" class="select tl-in" placeholder="Reference number"><button class="btn btn-sm" id="t-ref-save">Save</button>`)
           : `<button class="btn btn-sm" data-done="${s.id}">${s.done ? 'Undo' : 'They did it'}</button>${s.late && s.next ? `<a class="btn btn-sm btn-primary" href="${esc(s.next.href)}" ${s.next.href.startsWith('http') ? 'target="_blank" rel="noopener"' : ''}>${esc(s.next.label)}</a>` : ''}`}</div></div></li>`).join('')}</ol>
       <p class="src-line">Deadlines count from the day you complained. Working days skip weekends but not holidays.</p>`,
       `<button class="btn" id="t-reset">Start over</button><a class="btn btn-primary" href="#/act">${I.mail}Complaint</a>`, 'full');
@@ -875,10 +881,10 @@ Contact: [phone or email]`;
       <form id="log-form" class="log-form">
         <div class="field"><label for="l-date">Date</label><input id="l-date" class="select" type="date" value="${isoD(today())}" max="${isoD(today())}" required></div>
         <div class="field row2"><div><label for="l-from">Water came at</label><input id="l-from" class="select" type="time"></div><div><label for="l-to">Stopped at</label><input id="l-to" class="select" type="time"></div></div>
-        <label class="check"><input id="l-none" type="checkbox"> No water at all today</label>
+        <label class="chk"><input id="l-none" type="checkbox"> No water at all today</label>
         <div class="field"><label for="l-secs">Seconds to fill 1 liter (optional)</label><input id="l-secs" class="select" type="number" inputmode="decimal" min="1" step="0.5"></div>
         <div class="field"><label for="l-color">Water looked</label><select id="l-color" class="select">${COLORS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></div>
-        <label class="check"><input id="l-smell" type="checkbox"> Bad smell or taste</label>
+        <label class="chk"><input id="l-smell" type="checkbox"> Bad smell or taste</label>
         <div class="field"><label for="l-note">Note (optional)</label><input id="l-note" class="select" type="text" placeholder="e.g. photo 7:02 AM, neighbor same"></div>
       </form>
       ${S.log.length ? `<p class="section-label">Entries</p><ul class="log-list">${S.log.slice().sort((a, b) => b.date.localeCompare(a.date)).map(e => `<li><b>${esc(shortD(parseD(e.date)))}</b><span>${e.none ? 'No water' : e.from && e.to ? `${esc(e.from)} to ${esc(e.to)} (${r1(hoursBetween(e.from, e.to))} h)` : 'Hours not noted'}${e.secs ? ` · ${r1(60 / e.secs)} L/min` : ''} · ${esc((COLORS.find(c => c[0] === e.color) || [, ''])[1])}${e.smell ? ' · smell' : ''}${e.note ? ` · ${esc(e.note)}` : ''}</span><button class="btn btn-quiet icon-only" data-del="${esc(e.date)}" aria-label="Delete ${esc(e.date)}">${I.x}</button></li>`).join('')}</ul>
