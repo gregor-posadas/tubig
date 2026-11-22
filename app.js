@@ -848,7 +848,7 @@ Contact: [phone or email]`;
       <p class="h-sub">Good records get faster action. They also show the problem is the supply, not your pipes.</p>
       <a class="track-cta" href="#/log">${I.list}<span><b>Keep a water log</b> ${S.log && S.log.length ? `${S.log.length} day${S.log.length > 1 ? 's' : ''} logged` : 'Takes a minute a day'}</span>${I.chev}</a>
       <div class="rules guide">${GUIDE.map((g, i) => `<details class="rule" ${i === 0 ? 'open' : ''}><summary><span class="ricon binding">${I[g.icon]}</span><span><b>${esc(g.title)}</b></span>${I.chev}</summary>
-        <div class="rbody"><ol class="gsteps">${g.steps.map(t => `<li>${esc(t)}</li>`).join('')}</ol><p class="src">Source: ${esc(g.src)}</p></div></details>`).join('')}</div>
+        <div class="rbody">${(window.TUBIG_ILL || {})[g.id] ? `<div class="ill-strip">${window.TUBIG_ILL[g.id].map((p, j) => `<figure class="ill-panel"><span class="ill-n" aria-hidden="true">${j + 1}</span>${p.svg}<figcaption>${esc(p.cap)}</figcaption></figure>`).join('')}</div>` : ''}<ol class="gsteps">${g.steps.map(t => `<li>${esc(t)}</li>`).join('')}</ol><p class="src">Source: ${esc(g.src)}</p></div></details>`).join('')}</div>
       <p class="src-line">Write the date, time and place on everything. Keep the original photos.</p>`,
       `<a class="btn" href="#/log">${I.list}Water log</a><button class="btn btn-primary" id="to-report">Report a problem</button>`, 'full');
     $('#back').onclick = () => history.length > 1 ? history.back() : go(muni() ? '#/owed' : '#/');
