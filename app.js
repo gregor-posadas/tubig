@@ -77,7 +77,7 @@
 
   /* ---------- state ---------- */
   const S = Object.assign({ muni: null, brgy: null, ptype: null, answers: {}, lat: null, lon: null, exact: false }, store.get('tubig-state', {}));
-  const save = () => store.set('tubig-state', { muni: S.muni, brgy: S.brgy, ptype: S.ptype, answers: S.answers, lat: S.lat, lon: S.lon, exact: S.exact });
+  const save = () => store.set('tubig-state', { muni: S.muni, brgy: S.brgy, ptype: S.ptype, answers: S.answers, lat: S.lat, lon: S.lon, exact: S.exact, conc: S.conc, track: S.track });
   const muni = () => (S.muni && D.places) ? D.places.munis[D.muniByCode[S.muni]] : null;
   const wd = () => { const m = muni(); return m && m.wd != null ? D.districts[m.wd] : null; };
   const jvOp = () => (S.ptype === 'wd' && wd() && wd().op) ? wd().op : null;
@@ -85,7 +85,12 @@
   const detectType = m => /metro manila/i.test(m.p) ? 'mwss' : (m.wd != null ? 'wd' : 'lgu');
   const placeLabel = () => { const m = muni(); return m ? (S.brgy ? bLabel(S.brgy) + ', ' : '') + `${m.n}, ${m.p}` : ''; };
   const providerName = () => { const w = wd(); if (S.ptype === 'wd' && w) return w.n; if (S.ptype === 'mwss') return 'Manila Water or Maynilad'; return D.ob.providers[S.ptype].name; };
+  const CONC = { maynilad: ['manila', 'caloocan', 'las pinas', 'malabon', 'muntinlupa', 'navotas', 'paranaque', 'valenzuela', 'pasay'],
+    manilawater: ['mandaluyong', 'marikina', 'pasig', 'pateros', 'san juan', 'taguig'] };
+  const guessConc = () => { const m = muni(); if (!m) return null; const c = core(m.n); return Object.keys(CONC).find(k => CONC[k].includes(c)) || null; };
+  const concFor = () => S.conc || guessConc() || 'maynilad';
   const tariffFor = () => {
+    if (S.ptype === 'mwss') return (D.tariffs.mwss || {})[concFor()] || null;
     const w = wd(); if (S.ptype !== 'wd' || !w) return null;
     const t = D.tariffs.districts || {};
     return t[w.id] || null;
@@ -93,9 +98,11 @@
 
   /* ---------- map ---------- */
   const PH = [[4.4, 116.6], [21.3, 127.0]];
-  const map = L.map('map', { zoomControl: false });
+  const map = L.map('map', { zoomControl: false, minZoom: 5, maxBounds: [[3.0, 113.5], [23.0, 130.5]], maxBoundsViscosity: 1 });
   L.control.zoom({ position: 'topright' }).addTo(map);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, noWrap: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
+  const PH_HOLES = [[[4.58, 120.32], [4.4, 119.9], [4.58, 119.48], [5.0, 119.3], [5.42, 119.48], [5.6, 119.9], [5.42, 120.32], [5.0, 120.5], [4.58, 120.32]], [[8.87, 118.82], [7.83, 117.29], [7.91, 116.87], [8.26, 116.63], [8.68, 116.72], [9.38, 117.21], [10.69, 118.53], [11.8, 119.17], [11.9, 119.36], [11.84, 119.8], [11.49, 120.05], [10.67, 120.23], [10.28, 120.17], [8.87, 118.82]], [[17.79, 119.87], [18.69, 120.2], [19.01, 120.5], [19.05, 121.32], [18.86, 121.85], [19.03, 122.28], [18.85, 122.66], [18.41, 122.85], [17.83, 122.77], [17.33, 123.01], [16.93, 123.04], [15.92, 122.68], [15.58, 122.15], [15.15, 122.07], [14.8, 122.17], [14.84, 122.92], [14.28, 124.17], [13.93, 124.48], [13.48, 124.46], [13.1, 124.72], [13.02, 125.48], [12.3, 126.04], [10.95, 126.32], [10.57, 126.06], [10.5, 125.8], [10.18, 125.79], [9.6, 126.68], [7.25, 127.08], [5.89, 126.59], [5.74, 126.14], [5.29, 125.87], [5.05, 125.55], [5.09, 125.15], [5.79, 123.81], [6.88, 123.4], [6.89, 122.99], [6.46, 122.42], [6.36, 121.97], [6.46, 121.76], [6.92, 121.44], [7.42, 121.42], [8.27, 121.81], [8.73, 122.52], [9.51, 121.87], [9.91, 121.87], [10.2, 121.51], [11.68, 121.37], [11.85, 120.84], [13.34, 119.79], [13.74, 119.84], [14.09, 120.1], [14.61, 119.65], [15.23, 119.4], [16.34, 119.33], [16.73, 119.47], [16.9, 119.79], [17.79, 119.87]], [[20.07, 122.43], [19.85, 121.9], [20.07, 121.37], [20.6, 121.15], [21.13, 121.37], [21.35, 121.9], [21.13, 122.43], [20.6, 122.65], [20.07, 122.43]]];
+  L.polygon([[[89, -179], [89, 179], [-89, 179], [-89, -179]], ...PH_HOLES], { className: 'ph-mask', interactive: false, stroke: false, fillOpacity: .8 }).addTo(map);
   const pad = () => isDesk() ? { paddingTopLeft: [452, 80], paddingBottomRight: [40, 40] } : { paddingTopLeft: [20, 70], paddingBottomRight: [20, sheetPx() + 20] };
   const fitPH = () => map.fitBounds(PH, pad());
   let pinLayer = null;
@@ -180,7 +187,7 @@
     { id: 'hours', type: 'one', title: 'How many hours a day do you have water?', help: 'Think of a typical day lately.',
       opts: [['24', 'All day'], ['18', '18 to 23 hours'], ['12', '12 to 17 hours'], ['7', '7 to 11 hours'], ['1', '1 to 6 hours'], ['0', 'No water at all']] },
     { id: 'pressure', type: 'one', title: 'How strong is the flow?',
-      opts: [['strong', 'Strong, even upstairs'], ['ground', 'Only OK on the ground floor'], ['trickle', 'A trickle; we fill buckets'], ['none', 'Nothing comes out']] },
+      opts: [['strong', 'Strong, even upstairs'], ['ground', 'OK on the ground floor only'], ['trickle', 'A trickle'], ['none', 'Nothing comes out']] },
     { id: 'quality', type: 'many', title: 'Anything wrong with the water?', help: 'Choose all that apply.',
       opts: [['color', 'Brown or yellow color'], ['cloudy', 'Cloudy'], ['particles', 'Sand, rust or bits'], ['smell', 'Bad smell'], ['taste', 'Bad taste'], ['sick', 'Someone got sick'], ['ok', 'Nothing wrong']] },
     { id: 'outage', type: 'one', title: 'Longest time without water in the last 3 months?',
@@ -188,9 +195,9 @@
     { id: 'charged', type: 'one', showIf: a => a.outage === '15', title: 'Were you still billed the minimum charge for that time?',
       opts: [['yes', 'Yes'], ['no', 'No'], ['unsure', 'Not sure']] },
     { id: 'complaint', type: 'one', title: 'Have you reported a problem before?',
-      opts: [['not', 'Not yet'], ['acted', 'Yes, and they fixed it quickly'], ['slow', 'Yes, nothing for 3+ days'], ['never', 'Yes, still nothing']] },
+      opts: [['not', 'Not yet'], ['acted', 'Yes, and they fixed it quickly'], ['slow', 'Yes, no action after 3 days'], ['never', 'Yes, no action at all']] },
     { id: 'bill', type: 'one', title: 'Has your water rate gone up this year?',
-      opts: [['no', 'No'], ['hearing', 'Yes, after a public hearing'], ['nohearing', "Yes, and I didn't hear of a hearing"], ['unsure', 'Not sure']] },
+      opts: [['no', 'No'], ['hearing', 'Yes, after a public hearing'], ['nohearing', 'Yes, and I never heard of a public hearing'], ['unsure', 'Not sure']] },
     { id: 'connect', type: 'one', title: 'Waiting for a new connection?',
       opts: [['no', 'No'], ['short', 'Yes, under a month'], ['long', 'Yes, over a month']] }
   ];
@@ -218,7 +225,7 @@
       const signs = a.quality.filter(v => v !== 'ok');
       const you = a.quality.includes('ok') ? 'Nothing wrong' : signs.map((v, i) => i ? lc(LABEL.quality[v]) : LABEL.quality[v]).join(', ');
       if (!signs.length) push('quality', you, 'met');
-      else push('quality', you, 'check', (signs.includes('sick') ? 'Someone got sick: go to your health office now. ' : '') + 'This can mean the water fails national limits. Only a lab test can confirm it.', 'Test the water at my tap at a DOH-accredited laboratory and give me the results.');
+      else push('quality', you, 'check', (signs.includes('sick') ? 'Someone got sick: go to your health office now. ' : '') + 'This can mean the water fails national limits. Only a lab test can confirm it.', 'Test the water at my tap and give me the results, along with the latest water-quality test results for my barangay.');
     }
     if (a.outage) {
       const you = LABEL.outage[a.outage];
@@ -273,7 +280,8 @@
 
   /* SEARCH */
   function viewSearch() {
-    const resume = S.muni && muni() ? `<div class="resume"><div><b>${esc(placeLabel())}</b>${Object.keys(S.answers).length ? 'Your answers are saved.' : 'Pick up where you left off.'}</div><button class="btn btn-sm btn-primary" id="resume-go">Open</button></div>` : '';
+    const resume = S.muni && muni() ? (S.track ? `<div class="resume"><div><b>Complaint sent ${esc(daysAgo(S.track.sent))}</b>${esc(placeLabel())}</div><a class="btn btn-sm btn-primary" href="#/track">Track</a></div>`
+      : `<div class="resume"><div><b>${esc(placeLabel())}</b>${Object.keys(S.answers).length ? 'Your answers are saved.' : 'Pick up where you left off.'}</div><button class="btn btn-sm btn-primary" id="resume-go">Open</button></div>`) : '';
     render(`
       <h1 class="h-title">Check your water service</h1>
       <p class="h-sub">See what your provider owes you, then report what you get.</p>
@@ -440,6 +448,38 @@
     });
   }
 
+
+  /* "You're not the only one": what others have reported about the same problems */
+  const TYPE_FOR = { hours: ['No water', 'Intermittent supply'], outage: ['No water', 'Intermittent supply'], pressure: ['Low pressure'],
+    quality: ['Dirty or colored', 'Smell or taste', 'Health / illness'], complaint: ['Slow or no response'], bill: ['High bill or rate', 'Meter or billing error'], connect: ['Connection delay'] };
+  const pctN = (n, tot) => `${Math.round(n / tot * 100)}% (${fmtN(n)})`;
+  function othersHTML(rows) {
+    const m = muni(), w = wd(), mine = new Set(rows.filter(r => r.v !== 'met').flatMap(r => TYPE_FOR[r.id] || []));
+    const bars = (items, tot) => `<ul class="obars">${items.map(([label, n, hit]) => `<li class="${hit ? 'hit' : ''}"><span class="ol">${esc(label)}${hit ? '<span class="sr-only"> (your problem)</span>' : ''}</span><span class="otrack" aria-hidden="true"><span style="width:${Math.max(2, Math.round(n / tot * 100))}%"></span></span><span class="ov">${pctN(n, tot)}</span></li>`).join('')}</ul>`;
+    let main = '', src = '';
+    if (isMCWD()) {
+      const r = D.mcwd.complaints.rows.find(x => x.y === 2024), tot = r.total;
+      const it = [['No water', Math.round(r.nowater * tot), mine.has('No water') || mine.has('Intermittent supply')], ['Low pressure', Math.round(r.pressure * tot), mine.has('Low pressure')], ['Water quality', Math.round(r.quality * tot), mine.has('Dirty or colored') || mine.has('Smell or taste') || mine.has('Health / illness')]];
+      main = `<p class="o-big">${fmtN(tot)} complaints</p><p class="o-sub">logged by your district's operator in 2024</p>${bars(it, tot)}`;
+      src = 'Source: Commission on Audit, 2024 audit of Mabalacat City Water District.';
+    } else {
+      let pool = D.complaints.filter(c => w && S.ptype === 'wd' ? norm(c.wd) === norm(w.n) : (norm(c.m) === norm(m.n) && norm(c.p) === norm(m.p)));
+      let where = S.ptype === 'wd' && w ? w.n : m.n;
+      if (pool.length < 3) { pool = D.complaints.filter(c => norm(c.p) === norm(m.p)); where = m.p; }
+      if (pool.length < 3) { pool = D.complaints; where = 'the Philippines'; }
+      const tot = pool.length, cnt = {};
+      pool.forEach(c => (c.types || []).forEach(t => { cnt[t] = (cnt[t] || 0) + 1; }));
+      const it = Object.entries(cnt).sort((a, b) => (mine.has(b[0]) - mine.has(a[0])) || b[1] - a[1]).slice(0, 5).map(([t, n]) => [t, n, mine.has(t)]);
+      main = `<p class="o-big">${fmtN(tot)} news report${tot > 1 ? 's' : ''}</p><p class="o-sub">of water complaints in ${esc(where)} since 2016</p>${bars(it, tot)}`;
+      src = 'Share of news reports that mention each problem; one report can mention several. Source: author’s dataset of news-reported complaints, 2016 to 2026.';
+    }
+    const near = S.brgy ? D.complaints.filter(c => norm(c.m) === norm(m.n) && norm(c.area).includes(norm(S.brgy))).sort((a, b) => (b.date || '').localeCompare(a.date || '')) : [];
+    const nearHTML = near.length ? `<div class="o-near"><p><b>${near.length} news report${near.length > 1 ? 's' : ''} name ${esc(bLabel(S.brgy))}.</b> ${esc(near[0].sum)}</p><p class="o-meta">${esc(near[0].date)} · ${near[0].url ? `<a href="${esc(near[0].url)}" target="_blank" rel="noopener">${esc(near[0].src)}</a>` : esc(near[0].src)}</p></div>` : '';
+    const pw = S.ptype === 'wd' && w && /primewater|hiraya/i.test(w.op || '') ? `<p class="o-line">87% (61 of 70) of water districts partnered with PrimeWater told a Senate committee in December 2025 that they were dissatisfied with its service.</p>` : '';
+    return `<section class="others" aria-labelledby="o-h"><h3 id="o-h">You're not the only one</h3>${main}${nearHTML}${pw}
+      <p class="o-src">${src} Highlighted: the problems you reported. Tubig doesn't collect reports yet; in a pilot, anonymous counts from your barangay would appear here.</p></section>`;
+  }
+
   /* GAP */
   function viewGap() {
     const rows = evaluate(); S.rows = rows;
@@ -450,6 +490,7 @@
       <h2 class="h-title">Your results</h2>
       <div class="verdict-hero"><p class="vh-big">${esc(head)}</p>
         <div class="vh-row">${['notmet', 'check', 'norule', 'met'].filter(k => c(k)).map(k => `<span><span class="dot ${k}"></span>${c(k)} ${VLAB[k].toLowerCase()}</span>`).join('')}</div></div>
+      ${othersHTML(rows)}
       <ul class="findings">${rows.map(r => `<li class="finding"><div class="f-top"><span class="f-name">${esc(r.title)}</span><span class="status ${r.v}"><span class="dot ${r.v}"></span>${VLAB[r.v]}</span></div>
         <div class="f-compare"><div><p class="k">You said</p><p class="v">${esc(r.you)}</p></div><div><p class="k">The rule</p><p class="v">${esc(r.short || 'No rule')}</p></div></div>
         ${r.note ? `<p class="f-note">${esc(r.note)}</p>` : ''}</li>`).join('')}</ul>`,
@@ -482,7 +523,8 @@
       <h2 class="h-title">Send your complaint</h2>
       <p class="h-sub">To ${esc(providerName())}${issues.length ? `, about ${issues.length} issue${issues.length > 1 ? 's' : ''}` : ''}.</p>
       <div class="seg" role="tablist">${Object.entries(tabs).map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${k === actTab}">${l}</button>`).join('')}</div>
-      <div role="tabpanel">${body}</div>`, foot, 'full');
+      <div role="tabpanel">${body}</div>
+      <a class="track-cta" href="#/track">${I.clock}<span><b>Sent it or called?</b> Track when they have to answer</span>${I.chev}</a>`, foot, 'full');
     $('#back').onclick = () => go('#/gap');
     $$('[data-tab]').forEach(b => b.onclick = () => { actTab = b.dataset.tab; viewAct(); });
     const ta = $('#letter');
@@ -520,7 +562,7 @@ ${lines.length ? lines.join('\n') : '- [Describe the problem]'}
 
 I respectfully ask that you:
 ${asks.map((a, i) => `${i + 1}. ${a}`).join('\n')}${asks.length ? '\n' : ''}${asks.length + 1}. Send me a written reply with a reference number for this complaint.
-
+${S.ptype === 'wd' && asks.some(a => /^Send me the /.test(a)) ? '\nAs a government-owned corporation, the district is covered by Executive Order No. 2, s. 2016 on Freedom of Information. Please treat my requests for documents as FOI requests.\n' : ''}
 Thank you. I look forward to your response.
 
 [Your name]
@@ -529,10 +571,13 @@ Contact: [phone or email]`;
   }
   function contactsFor(rows) {
     const t = S.ptype, m = muni(), w = wd(), out = [];
+    const tel = h => ({ href: 'tel:' + h.replace(/ \(.*\)/, '').replace(/[^0-9+]/g, ''), label: h.replace(/ \(.*\)/, ''), icon: 'phone' });
     if (isMCWD()) {
       const c = D.mcwd.contacts;
-      out.push({ name: 'Mabalacat City Water District', when: 'Start here', how: `Email, call or visit ${c.address}. Ask for a reference number.`, note: c.charterNote, email: c.email,
-        links: [{ href: 'mailto:' + c.email, label: 'Email', icon: 'mail' }, { href: 'tel:' + c.landline.replace(/[^0-9+]/g, ''), label: c.landline, icon: 'phone' }, { href: 'tel:' + c.hotlines[0].replace(/[^0-9]/g, '').slice(0, 11), label: c.hotlines[0].replace(/ \(.*\)/, ''), icon: 'phone' }] });
+      out.push({ name: `${c.operatorName} (operator)`, when: 'No water, leaks, low pressure', how: 'Call the 24/7 hotline for repairs. Ask for a reference number.', note: c.operatorNote,
+        links: c.hotlines.slice(0, 2).map(tel) });
+      out.push({ name: 'Mabalacat City Water District', when: 'Written complaint', how: `Email the letter or bring it to ${c.address}. The district answers for its operator.`, note: c.charterNote, email: c.email,
+        links: [{ href: 'mailto:' + c.email, label: 'Email', icon: 'mail' }, tel(c.landline)] });
     } else if (t === 'wd' && w) out.push({ name: w.n, when: 'Start here', how: "Use the complaints desk in the district's Citizen's Charter (website or office). Ask for a reference number." });
     else if (t === 'mwss') { out.push({ name: 'Your concessionaire', when: 'Start here', how: 'Maynilad 1626 or Manila Water 1627. Ask for a reference number.', links: [{ href: 'tel:1626', label: 'Maynilad 1626', icon: 'phone' }, { href: 'tel:1627', label: 'Manila Water 1627', icon: 'phone' }] }); out.push({ name: 'MWSS Regulatory Office', when: 'If not resolved', how: 'Handles unresolved complaints about the concessionaires.' }); }
     else if (t === 'private') { out.push({ name: 'Your water company', when: 'Start here', how: 'Write to customer service and keep a copy.' }); out.push({ name: 'National Water Resources Board', when: 'If not resolved', how: 'File a written, sworn complaint. Answer due in 10 days.' }); }
@@ -542,6 +587,7 @@ Contact: [phone or email]`;
       out.push({ name: "8888 Citizens' Complaint Center", when: 'No action in time', how: 'Call 8888, any time. Agencies must act within 72 hours.', links: [{ href: 'tel:8888', label: 'Call 8888', icon: 'phone' }] });
       out.push({ name: 'Anti-Red Tape Authority', when: 'Charter ignored', how: 'File online or call 1-ARTA (12782).', links: [{ href: 'https://ecms.arta.gov.ph/', label: 'File online', icon: 'ext' }] });
     }
+    if (t === 'wd') out.push({ name: 'Freedom of Information', when: 'Documents ignored', how: 'Water districts are covered by FOI. Request test results, rate-hearing notices or joint venture reports online; agencies must reply within 15 working days.', links: [{ href: isMCWD() ? D.mcwd.contacts.foi : 'https://www.foi.gov.ph/', label: 'foi.gov.ph', icon: 'ext' }] });
     if (rows.some(r => r.id === 'quality' && r.v !== 'met')) out.push({ name: `${m.n.replace(/^City of /, '')} Health Office`, when: 'Water quality or illness', how: 'Ask the sanitary inspector to test the water at your tap.' });
     if (t === 'wd' && rows.some(r => r.id === 'bill' && r.v !== 'met')) out.push({ name: 'LWUA', when: 'Rate questions', how: 'LWUA reviews water district rates.', links: [{ href: 'https://lwua.gov.ph/', label: 'lwua.gov.ph', icon: 'ext' }] });
     return out;
@@ -553,12 +599,78 @@ Contact: [phone or email]`;
     return `<div class="script">${lines.map(t => `<p class="bubble">${esc(t)}</p>`).join('')}<p class="tip">Write down the date, who you spoke to, and the reference number.</p></div>`;
   }
 
+
+  /* TRACK: deadlines after a complaint is sent (stored only on this device) */
+  const today = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+  const parseD = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+  const isoD = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const addWorkDays = (d, n) => { const x = new Date(d); while (n > 0) { x.setDate(x.getDate() + 1); if (x.getDay() % 6) n--; } return x; };
+  const shortD = d => d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+  function daysAgo(iso) { const n = Math.round((today() - parseD(iso)) / 864e5); return n <= 0 ? 'today' : n === 1 ? 'yesterday' : `${n} days ago`; }
+  function trackSteps(t) {
+    const sent = parseD(t.sent), steps = [];
+    const p = S.ptype;
+    steps.push({ id: 'ref', title: 'Get a reference number', rule: 'Ask for it when you send or call. It proves when you complained.', due: sent, done: !!t.ref });
+    if (p === 'wd' || p === 'lgu') {
+      const mc = isMCWD();
+      steps.push({ id: 'act', title: mc ? 'Repair or action on your request' : 'Action on your request',
+        rule: mc ? "Within 24 hours for service requests; 2 to 3 working days for maintenance (MCWD Citizen's Charter)." : "Your provider's Citizen's Charter sets the time. Under the Ease of Doing Business Act, simple requests take up to 3 working days.",
+        due: mc ? addDays(sent, 1) : addWorkDays(sent, 3),
+        next: { label: 'Call 8888', href: 'tel:8888', text: 'If nothing happened, call 8888. The agency must act within 72 hours of your 8888 complaint.' } });
+      if (p === 'wd') steps.push({ id: 'foi', title: 'Documents you asked for', rule: 'Under Freedom of Information, the district must reply within 15 working days.', due: addWorkDays(sent, 15),
+        next: { label: 'File on foi.gov.ph', href: isMCWD() ? D.mcwd.contacts.foi : 'https://www.foi.gov.ph/', text: 'If you got no reply, file the same request on foi.gov.ph so it is logged.' } });
+      steps.push({ id: 'reply', title: 'Written reply to your complaint', rule: 'Ask for one in writing. If the deadlines above pass, report the delay to the Anti-Red Tape Authority.', due: addWorkDays(sent, mc ? 3 : 7),
+        next: { label: 'File with ARTA', href: 'https://ecms.arta.gov.ph/', text: 'The Anti-Red Tape Authority handles agencies that ignore their Citizen’s Charter.' } });
+    } else if (p === 'mwss') {
+      steps.push({ id: 'act', title: 'Service restored', rule: 'Unplanned interruptions must be fixed within 6 hours (concession service obligations).', due: sent,
+        next: { label: 'MWSS Regulatory Office', href: 'https://mwss.gov.ph/', text: 'If the concessionaire does not resolve it, raise it with the MWSS Regulatory Office.' } });
+      steps.push({ id: 'reply', title: 'Reply to your complaint', rule: 'Complaints must be acted on "with dispatch". If a week passes, escalate.', due: addDays(sent, 7),
+        next: { label: 'MWSS Regulatory Office', href: 'https://mwss.gov.ph/', text: 'Bring your reference number and dates.' } });
+    } else {
+      steps.push({ id: 'reply', title: 'Answer to your complaint', rule: p === 'private' ? 'NWRB rules give the company 10 days to answer a written, sworn complaint filed with NWRB.' : 'No national deadline applies to this provider type.', due: addDays(sent, 10),
+        next: p === 'private' ? { label: 'NWRB', href: 'https://nwrb.gov.ph/', text: 'File a written, sworn complaint with the National Water Resources Board.' } : null });
+    }
+    return steps.map(s => Object.assign(s, { done: s.id === 'ref' ? !!t.ref : !!(t.done || {})[s.id], late: s.id !== 'ref' && !(t.done || {})[s.id] && today() > s.due }));
+  }
+  function viewTrack() {
+    const t = S.track;
+    if (!t) {
+      render(`<button class="back" id="back">${I.left}Complaint</button>
+        <h2 class="h-title">Track your complaint</h2><p class="h-sub">Tubig counts the days and tells you when to escalate. This stays on your phone.</p>
+        <div class="field"><label for="t-sent">Date you sent or called</label><input id="t-sent" class="select" type="date" value="${isoD(today())}" max="${isoD(today())}"></div>
+        <div class="field"><label for="t-via">How</label><select id="t-via" class="select"><option>Email</option><option>Phone call</option><option>In person</option><option>Facebook message</option></select></div>
+        <div class="field"><label for="t-ref">Reference number (if you got one)</label><input id="t-ref" class="select" type="text" autocomplete="off"></div>`,
+        `<button class="btn btn-primary" id="t-start">Start tracking</button>`, 'full');
+      $('#back').onclick = () => go('#/act');
+      $('#t-start').onclick = () => { S.track = { sent: $('#t-sent').value || isoD(today()), via: $('#t-via').value, ref: $('#t-ref').value.trim(), done: {} }; save(); toast('Tracking started'); viewTrack(); };
+      return;
+    }
+    const steps = trackSteps(t), late = steps.find(s => s.late && s.next);
+    const day = Math.max(0, Math.round((today() - parseD(t.sent)) / 864e5));
+    render(`<button class="back" id="back">${I.left}Complaint</button>
+      <h2 class="h-title">Day ${day} since you complained</h2>
+      <p class="h-sub">${esc(t.via)} to ${esc(providerName())}, ${esc(shortD(parseD(t.sent)))}${t.ref ? ` · Ref. ${esc(t.ref)}` : ''}</p>
+      ${late ? `<div class="callout">${I.alert}<p><b>${esc(late.title)} is overdue.</b> ${esc(late.next.text)}</p></div>` : ''}
+      <ol class="timeline">${steps.map(s => `<li class="${s.done ? 'done' : s.late ? 'late' : ''}"><span class="tl-dot" aria-hidden="true">${s.done ? I.check : ''}</span><div>
+        <div class="tl-top"><b>${esc(s.title)}</b><span class="tl-due">${s.done ? 'Done' : s.late ? 'Overdue' : s.id === 'ref' ? 'To do' : 'Due ' + esc(shortD(s.due))}</span></div>
+        <p>${esc(s.rule)}</p>
+        <div class="tl-act">${s.id === 'ref' ? (s.done ? '' : `<label class="sr-only" for="t-ref2">Reference number</label><input id="t-ref2" class="select tl-in" placeholder="Reference number"><button class="btn btn-sm" id="t-ref-save">Save</button>`)
+          : `<button class="btn btn-sm" data-done="${s.id}">${s.done ? 'Undo' : 'They did it'}</button>${s.late && s.next ? `<a class="btn btn-sm btn-primary" href="${esc(s.next.href)}" ${s.next.href.startsWith('http') ? 'target="_blank" rel="noopener"' : ''}>${esc(s.next.label)}</a>` : ''}`}</div></div></li>`).join('')}</ol>
+      <p class="src-line">Deadlines count from the day you complained. Working days skip weekends but not holidays.</p>`,
+      `<button class="btn" id="t-reset">Start over</button><a class="btn btn-primary" href="#/act">${I.mail}Complaint</a>`, 'full');
+    $('#back').onclick = () => go('#/act');
+    $$('[data-done]').forEach(b => b.onclick = () => { t.done = t.done || {}; t.done[b.dataset.done] = !t.done[b.dataset.done]; save(); viewTrack(); });
+    const rs = $('#t-ref-save'); if (rs) rs.onclick = () => { t.ref = $('#t-ref2').value.trim(); save(); viewTrack(); };
+    $('#t-reset').onclick = () => { S.track = null; save(); viewTrack(); };
+  }
+
   /* BILL */
   function computeBill(tf, cum) {
     if (!tf || tf.min == null) return null;
     if (cum <= 10) return { total: tf.min };
     if (!tf.blocks || !tf.blocks.length) return { total: null };
-    let total = tf.min, used = cum - 10, from = 11;
+    let total = tf.base10 != null ? tf.base10 : tf.min, used = cum - 10, from = 11;
     for (const b of tf.blocks) {
       if (used <= 0) break;
       const span = b.to == null ? used : Math.min(used, b.to - Math.max(b.from, from) + 1);
@@ -568,22 +680,25 @@ Contact: [phone or email]`;
     return { total: used > 0 ? null : Math.round(total * 100) / 100 };
   }
   function viewBill() {
-    const tf = tariffFor(), w = wd();
+    const tf = tariffFor(), w = wd(), mw = S.ptype === 'mwss';
+    const concSel = mw ? `<div class="field"><label for="conc">Your water company</label><select id="conc" class="select">${Object.entries(D.tariffs.mwss || {}).map(([k, v]) => `<option value="${k}" ${k === concFor() ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select><p class="hint">${guessConc() && !S.conc ? 'Based on your city. ' : ''}Check the logo on your bill.</p></div>` : '';
     const table = tf ? `<div class="tariff"><table><thead><tr><th>Water used</th><th class="num">Charge</th></tr></thead><tbody>
-      <tr><td>First 10 m³ (minimum)</td><td class="num">${peso(tf.min)}</td></tr>
+      <tr><td>${tf.base10 != null ? 'Up to 10 m³ (minimum)' : 'First 10 m³ (minimum)'}</td><td class="num">${peso(tf.min)}</td></tr>
+      ${tf.base10 != null ? `<tr><td>First 10 m³, if you use more</td><td class="num">${peso(tf.base10)}</td></tr>` : ''}
       ${(tf.blocks || []).map(b => `<tr><td>${b.to == null ? `${b.from} m³ and up` : `${b.from} to ${b.to} m³`}</td><td class="num">${peso(b.rate)} per m³</td></tr>`).join('')}</tbody></table></div>
-      <p class="src-line">Residential, ½-inch meter. Latest rate LWUA has on record${tf.effective ? `, approved ${esc(fmtDate(tf.effective))}` : ''}. Source: ${tf.url ? `<a href="${esc(tf.url)}" target="_blank" rel="noopener">${esc(tf.source)}</a>` : esc(tf.source || '')}.</p>
-      ${tf.note ? `<div class="callout info">${I.info}<p>${esc(tf.note)}</p></div>` : jvOp() ? `<div class="callout info">${I.info}<p>Your district is run with ${esc(jvOp().replace(/ \(.*\)$/, ''))}. Rates under a joint venture may be newer than what LWUA has posted. Ask the district for its current approved schedule.</p></div>` : ''}` : '';
+      <p class="src-line">Residential, ½-inch meter, basic charge. ${mw ? esc(tf.note) : `Latest rate LWUA has on record${tf.effective ? `, approved ${esc(fmtDate(tf.effective))}` : ''}.`} Source: ${tf.url ? `<a href="${esc(tf.url)}" target="_blank" rel="noopener">${esc(tf.source)}</a>` : esc(tf.source || '')}.</p>
+      ${mw ? '' : tf.note ? `<div class="callout info">${I.info}<p>${esc(tf.note)}</p></div>` : jvOp() ? `<div class="callout info">${I.info}<p>Your district is run with ${esc(jvOp().replace(/ \(.*\)$/, ''))}. Rates under a joint venture may be newer than what LWUA has posted. Ask the district for its current approved schedule.</p></div>` : ''}` : '';
     render(`<button class="back" id="back">${I.left}Rules</button>
       <h2 class="h-title">Check your bill</h2>
       <p class="h-sub">${esc(S.ptype === 'wd' && w ? w.n : providerName())}</p>
-      ${tf ? table : `<div class="callout info">${I.info}<p>We don't have this provider's approved tariff yet. ${S.ptype === 'wd' ? 'Water district rates are approved by LWUA; ask your district for its schedule.' : ''}</p></div>`}
+      ${concSel}${tf ? table : `<div class="callout info">${I.info}<p>We don't have this provider's approved tariff yet. ${S.ptype === 'wd' ? 'Water district rates are approved by LWUA; ask your district for its schedule.' : ''}</p></div>`}
       ${tf ? `<div class="field"><label for="cum">Water used this month</label><div class="input-wrap"><input id="cum" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 18"><span class="unit">m³</span></div><p class="hint">On your bill as "consumption" or "cu.m."</p></div>
       <div class="field"><label for="amt">Amount billed (optional)</label><div class="input-wrap prefix"><span class="pre">₱</span><input id="amt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g. 520.00"></div><p class="hint">This month's water charge, without unpaid balances.</p></div>
       <div id="bill-out" aria-live="polite"></div>` : ''}`,
       `<button class="btn btn-primary" id="to-report">Report a problem</button>`, 'full');
     $('#back').onclick = () => go('#/owed');
     $('#to-report').onclick = () => go('#/report/1');
+    const cs = $('#conc'); if (cs) cs.onchange = e => { S.conc = e.target.value; save(); viewBill(); };
     if (!tf) return;
     const out = $('#bill-out'), cum = $('#cum'), amt = $('#amt');
     const upd = () => {
@@ -591,9 +706,9 @@ Contact: [phone or email]`;
       if (!(c >= 0)) { out.innerHTML = ''; return; }
       const r = computeBill(tf, c);
       if (!r || r.total == null) { out.innerHTML = `<div class="bill-result"><p>We only have the minimum charge for this district (${peso(tf.min)} for the first 10 m³). Rates above 10 m³ aren't in our data yet.</p></div>`; return; }
-      const exp = r.total;
-      if (!(a > 0)) { out.innerHTML = `<div class="bill-result ok"><span class="br-big">${peso(exp)}</span><p>What ${c} m³ should cost at this rate, before arrears or other fees.</p></div>`; return; }
-      const diff = a - exp, tol = Math.max(5, exp * .03), over = diff > tol, under = diff < -tol;
+      const basic = r.total, exp = mw ? Math.round(((basic * (1 + tf.env) + tf.msc) * (1 + tf.tax)) * 100) / 100 : basic;
+      if (!(a > 0)) { out.innerHTML = `<div class="bill-result ok"><span class="br-big">${mw ? 'about ' : ''}${peso(exp)}</span><p>${mw ? `What ${c} m³ should cost: ${peso(basic)} basic charge plus the environmental charge, meter charge and taxes. Currency adjustments change each quarter.` : `What ${c} m³ should cost at this rate, before arrears or other fees.`}</p></div>`; return; }
+      const diff = a - exp, tol = mw ? Math.max(10, exp * .06) : Math.max(5, exp * .03), over = diff > tol, under = diff < -tol;
       out.innerHTML = `<div class="bill-result ${over ? 'over' : 'ok'}"><span class="br-big">${over ? '+' + peso(diff) : under ? '−' + peso(-diff) : peso(exp)}</span>
         <p>${over ? `You were billed ${peso(diff)} more than ${c} m³ costs at this rate (${peso(exp)}). A newer rate, fees, arrears or VAT may explain it. Ask the district to itemize the bill and show the approved rate.`
           : under ? `You were billed ${peso(-diff)} less than ${c} m³ costs at this rate (${peso(exp)}). A senior or PWD discount, a newer lower rate, or a misread meter could explain it. Check the meter reading on your bill.`
@@ -675,6 +790,7 @@ Contact: [phone or email]`;
       <h2>Rules by provider type</h2><p class="lead">"No rule found" is a finding, not missing data.</p>
       <div class="table-scroll" style="margin-top:12px"><table class="table matrix"><thead><tr><th>Service</th>${keys.map(k => `<th>${esc(Pv[k].name)}</th>`).join('')}</tr></thead><tbody>${D.ob.dimensions.map(d => `<tr style="cursor:default"><th>${esc(d.title)}</th>${keys.map(k => { const r = d.rules._all || d.rules[k]; return `<td>${r.status === 'none' ? '<span class="count">No rule found</span>' : esc(r.text)}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>
       <h2>Questions</h2><div class="faq">
+        <details><summary>Can't I just call my water provider?</summary><p>Yes, and that is the first step Tubig points you to. Every water district has a complaints desk and a Citizen's Charter, and the 8888 hotline and ARTA are there if nothing happens. What Tubig adds is the rule your provider has to meet, the right office to contact first and next, and a written complaint with a reference number, so there is a record if you need to escalate.</p></details>
         <details><summary>Is my information stored?</summary><p>No accounts, nothing sent to us. Answers stay in your browser. The place you pick goes to OpenStreetMap to show it on the map.</p></details>
         <details><summary>Why is there no minimum for hours or pressure?</summary><p>No national rule requires water districts to supply water 24 hours a day, at a set pressure, or in a set amount per person. Utilities regulated by NWRB and those run by local governments have minimums (18 hours a day and 8 psi under NWRB Res. 14-0921); water districts do not. LWUA and the Commission on Audit track hours of supply as a performance indicator, but each district sets its own target. Districts must meet national drinking-water quality standards and act on complaints within their Citizen's Charter times and 72 hours for 8888 complaints.</p></details>
         <details><summary>What if a private company runs my water district?</summary><p>Joint venture contracts reviewed so far promise 24-hour supply within 2 to 5 years and 10 psi within 4 to 5 years. These are contract terms, not regulations: only the water district's board can enforce them, by forfeiting the operator's performance bond or ending the contract. The contracts are usually not public, so ask your district for its annual joint venture compliance report. Your complaint goes to the water district, which answers for its partner.</p></details>
@@ -706,10 +822,10 @@ Contact: [phone or email]`;
     }
     setTimeout(() => map.invalidateSize(), 30);
     document.title = 'Tubig · Check your water service';
-    if (['owed', 'report', 'gap', 'act', 'bill'].includes(v)) {
+    if (['owed', 'report', 'gap', 'act', 'bill', 'track'].includes(v)) {
       await loadPlaces();
       if (!muni()) { go('#/'); return; }
-      ({ owed: viewOwed, report: () => viewReport(+arg || 1), gap: viewGap, act: viewAct, bill: viewBill })[v]();
+      ({ owed: viewOwed, report: () => viewReport(+arg || 1), gap: viewGap, act: viewAct, bill: viewBill, track: viewTrack })[v]();
       placeOnMap();
     } else viewSearch();
     if (v) $('#panel').focus({ preventScroll: true });
