@@ -96,26 +96,137 @@
     return t[w.id] || null;
   };
 
-  /* ---------- map ---------- */
+  /* ---------- map ----------
+     Vector map of the Philippines only: MapLibre GL draws our own PMTiles (land and coast, built-up areas, main roads,
+     rivers and place names, built for BahaWatch from OpenStreetMap, Open Buildings and PSA/NAMRIA outlines), so nothing
+     outside the country is drawn. Without WebGL, or if it fails to load, the Leaflet + OpenStreetMap map is used. */
   const PH = [[5.0, 117.0], [19.4, 126.6]];
-  const map = L.map('map', { zoomControl: false, minZoom: 4, maxBounds: [[-32.0, 92.0], [38.0, 152.0]], maxBoundsViscosity: 1 });
-  L.control.zoom({ position: 'topright' }).addTo(map);
-  window.__tubigMap = map;
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, noWrap: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
-  const PH_HOLES = [[[4.58, 120.32], [4.4, 119.9], [4.58, 119.48], [5.0, 119.3], [5.42, 119.48], [5.6, 119.9], [5.42, 120.32], [5.0, 120.5], [4.58, 120.32]], [[8.87, 118.82], [7.83, 117.29], [7.91, 116.87], [8.26, 116.63], [8.68, 116.72], [9.38, 117.21], [10.69, 118.53], [11.8, 119.17], [11.9, 119.36], [11.84, 119.8], [11.49, 120.05], [10.67, 120.23], [10.28, 120.17], [8.87, 118.82]], [[17.79, 119.87], [18.69, 120.2], [19.01, 120.5], [19.05, 121.32], [18.86, 121.85], [19.03, 122.28], [18.85, 122.66], [18.41, 122.85], [17.83, 122.77], [17.33, 123.01], [16.93, 123.04], [15.92, 122.68], [15.58, 122.15], [15.15, 122.07], [14.8, 122.17], [14.84, 122.92], [14.28, 124.17], [13.93, 124.48], [13.48, 124.46], [13.1, 124.72], [13.02, 125.48], [12.3, 126.04], [10.95, 126.32], [10.57, 126.06], [10.5, 125.8], [10.18, 125.79], [9.6, 126.68], [7.25, 127.08], [5.89, 126.59], [5.74, 126.14], [5.29, 125.87], [5.05, 125.55], [5.09, 125.15], [5.79, 123.81], [6.88, 123.4], [6.89, 122.99], [6.46, 122.42], [6.36, 121.97], [6.46, 121.76], [6.92, 121.44], [7.42, 121.42], [8.27, 121.81], [8.73, 122.52], [9.51, 121.87], [9.91, 121.87], [10.2, 121.51], [11.68, 121.37], [11.85, 120.84], [13.34, 119.79], [13.74, 119.84], [14.09, 120.1], [14.61, 119.65], [15.23, 119.4], [16.34, 119.33], [16.73, 119.47], [16.9, 119.79], [17.79, 119.87]], [[20.07, 122.43], [19.85, 121.9], [20.07, 121.37], [20.6, 121.15], [21.13, 121.37], [21.35, 121.9], [21.13, 122.43], [20.6, 122.65], [20.07, 122.43]]];
-  L.polygon([[[89, -179], [89, 179], [-89, 179], [-89, -179]], ...PH_HOLES], { className: 'ph-mask', interactive: false, stroke: false, fillOpacity: 1 }).addTo(map);
   const pad = () => isDesk() ? { paddingTopLeft: [452, 80], paddingBottomRight: [40, 40] } : { paddingTopLeft: [20, 70], paddingBottomRight: [20, sheetPx() + 20] };
-  const fitPH = () => map.fitBounds(PH, pad());
-  let pinLayer = null;
-  function showPin(lat, lon, label, exact) {
-    if (pinLayer) map.removeLayer(pinLayer);
-    const r = exact ? 700 : 2500;
-    pinLayer = L.layerGroup([
-      L.circle([lat, lon], { radius: r, color: '#1D4E89', weight: 2, fillColor: '#78A6E0', fillOpacity: .18 }),
-      L.circleMarker([lat, lon], { radius: 9, color: '#fff', weight: 3, fillColor: '#CF5921', fillOpacity: 1 }).bindTooltip(esc(label), { permanent: true, direction: 'top', offset: [0, -10], className: 'pin-tip' })
-    ]).addTo(map);
-    map.flyToBounds(L.latLng(lat, lon).toBounds(r * 3.2), Object.assign({ duration: RM ? 0 : 1.2, maxZoom: 15 }, pad()));
+  const padBox = () => { const p = pad(); return { top: p.paddingTopLeft[1], left: p.paddingTopLeft[0], bottom: p.paddingBottomRight[1], right: p.paddingBottomRight[0] }; };
+  const pinR = exact => exact ? 700 : 2500;
+  const MAP = {
+    want: { t: 'fit' }, impl: null,
+    fit() { this.want = { t: 'fit' }; if (this.impl) this.impl.fit(); },
+    pin(lat, lon, label, exact) { this.want = { t: 'pin', a: [lat, lon, label, exact] }; if (this.impl) this.impl.pin(lat, lon, label, exact); },
+    clear() { this.want = { t: 'fit' }; if (this.impl) this.impl.clear(); },
+    resize() { if (this.impl) this.impl.resize(); },
+    retheme() { if (this.impl && this.impl.retheme) this.impl.retheme(); },
+    use(impl) { this.impl = impl; window.__tubigMap = impl; if (this.want.t === 'pin') impl.pin(...this.want.a, true); else impl.fit(true); }
+  };
+  const fitPH = () => MAP.fit();
+  const showPin = (lat, lon, label, exact) => MAP.pin(lat, lon, label, exact);
+
+  function vectorStyle(dark) {
+    const base = location.href.replace(/[#?].*$/, '').replace(/[^/]*$/, '');
+    const C = dark ? { water: '#18232c', land: '#1f1e1c', coast: '#c9c1b4', built: '#3a352f', river: '#4f8fb0', casing: '#1c1a18', road: '#4a4640', text: '#f3efe7', halo: '#1f1e1c' }
+      : { water: '#d6e2e8', land: '#fbf9f4', coast: '#232120', built: '#ddd0b8', river: '#7fb8d6', casing: '#cdbfa6', road: '#ffffff', text: '#232120', halo: '#fbf9f4' };
+    const w = (z0, w0, z1, w1) => ['interpolate', ['exponential', 1.5], ['zoom'], z0, w0, z1, w1];
+    const roads = (id, cls, minz, cw, rw) => [
+      { id: id + '-casing', type: 'line', source: 'base', 'source-layer': 'roads', minzoom: minz, filter: ['match', ['get', 'class'], cls, true, false], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.casing, 'line-width': cw } },
+      { id, type: 'line', source: 'base', 'source-layer': 'roads', minzoom: minz, filter: ['match', ['get', 'class'], cls, true, false], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': C.road, 'line-width': rw } }];
+    return {
+      version: 8, glyphs: base + 'fonts/{fontstack}/{range}.pbf',
+      sources: {
+        land: { type: 'vector', url: 'pmtiles://' + base + 'tiles/ph-land.pmtiles', attribution: 'Coastline: PSA/NAMRIA via OCHA HDX' },
+        base: { type: 'vector', url: 'pmtiles://' + base + 'tiles/ph-base.pmtiles', attribution: '© OpenStreetMap contributors · Open Buildings (Google, Microsoft, via VIDA)' }
+      },
+      layers: [
+        { id: 'water', type: 'background', paint: { 'background-color': C.water } },
+        { id: 'land', type: 'fill', source: 'land', 'source-layer': 'land', paint: { 'fill-color': C.land, 'fill-antialias': false } },
+        { id: 'builtup', type: 'fill', source: 'base', 'source-layer': 'builtup', maxzoom: 12, paint: { 'fill-color': C.built, 'fill-antialias': false, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 4, ['*', 0.33, ['get', 'd']], 9, ['*', 0.25, ['get', 'd']], 11.5, 0] } },
+        { id: 'river', type: 'line', source: 'base', 'source-layer': 'rivers', minzoom: 9, paint: { 'line-color': C.river, 'line-width': w(9, 0.6, 16, 3) } },
+        ...roads('road-minor', ['minor'], 12, w(12, 1.7, 18, 10), w(12, 0.5, 18, 8)),
+        ...roads('road-mid', ['secondary', 'tertiary', 'mid'], 9, w(9, 1.7, 18, 14), w(9, 0.5, 18, 12)),
+        ...roads('road-major', ['motorway', 'trunk', 'primary', 'major'], 5, w(5, 1.6, 18, 18), w(5, 0.5, 18, 16)),
+        { id: 'coast', type: 'line', source: 'land', 'source-layer': 'coast', layout: { 'line-join': 'round' }, paint: { 'line-color': C.coast, 'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.6, 10, 1, 16, 1.5] } },
+        { id: 'place-label', type: 'symbol', source: 'base', 'source-layer': 'places', layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Medium'], 'text-size': ['match', ['get', 'place'], 'city', 13, 11.5], 'text-padding': 4 }, paint: { 'text-color': C.text, 'text-halo-color': C.halo, 'text-halo-width': 1.5 } }
+      ]
+    };
   }
+  function circleRing(lat, lon, r) {
+    const out = [], dLat = r / 110574, dLon = r / (111320 * Math.cos(lat * Math.PI / 180));
+    for (let i = 0; i <= 48; i++) { const a = i / 48 * 2 * Math.PI; out.push([lon + dLon * Math.cos(a), lat + dLat * Math.sin(a)]); }
+    return out;
+  }
+  async function vectorImpl() {
+    const c = document.createElement('canvas');
+    if (!(c.getContext('webgl2') || c.getContext('webgl'))) throw new Error('no WebGL');
+    const [m, pm] = await Promise.all([import('./vendor/maplibre/maplibre-gl.mjs'), import('./vendor/pmtiles/pmtiles.mjs')]);
+    const lib = m.Map ? m : m.default;
+    // A PMTiles archive read with HTTP range requests; a server that ignores Range (sends the whole file) still works:
+    // the file is kept and sliced (approach from BahaWatch's basemap.js).
+    class RangeSource {
+      constructor(key) { this.key = key; this.whole = null; }
+      getKey() { return this.key; }
+      async getBytes(off, len, signal) {
+        if (!this.whole) {
+          const r = await fetch(this.key, { signal, headers: { range: `bytes=${off}-${off + len - 1}` } });
+          if (r.status === 206) return { data: await r.arrayBuffer() };
+          if (!r.ok) throw new Error('tiles: ' + r.status);
+          this.whole = await r.arrayBuffer();
+        }
+        return { data: this.whole.slice(off, off + len) };
+      }
+    }
+    const proto = new pm.Protocol(), arcs = new Map();
+    proto.tiles = { get: k => { if (!arcs.has(k)) arcs.set(k, new pm.PMTiles(new RangeSource(k))); return arcs.get(k); }, set: (k, v) => arcs.set(k, v) };
+    lib.addProtocol('pmtiles', proto.tile);
+    const dark = () => document.documentElement.dataset.theme === 'dark';
+    const map = new lib.Map({ container: 'map', style: vectorStyle(dark()), bounds: [[PH[0][1], PH[0][0]], [PH[1][1], PH[1][0]]], fitBoundsOptions: { padding: padBox() },
+      minZoom: 3.5, maxZoom: 14, maxBounds: [[92, -32], [152, 38]], dragRotate: false, pitchWithRotate: false, touchPitch: false, attributionControl: { compact: true }, fadeDuration: RM ? 0 : 300 });
+    if (map.touchZoomRotate) map.touchZoomRotate.disableRotation();
+    if (map.keyboard) map.keyboard.disableRotation();
+    map.addControl(new lib.NavigationControl({ showCompass: false }), 'top-right');
+    await new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('map timeout')), 9000); map.once('load', () => { clearTimeout(t); res(); }); map.once('error', e => { if (!map.isStyleLoaded()) { clearTimeout(t); rej(e.error || e); } }); });
+    let pin = null, marker = null;
+    const addPinLayers = () => {
+      if (!pin || map.getSource('pin')) return;
+      map.addSource('pin', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [circleRing(pin.lat, pin.lon, pinR(pin.exact))] } } });
+      map.addLayer({ id: 'pin-fill', type: 'fill', source: 'pin', paint: { 'fill-color': '#78A6E0', 'fill-opacity': .2 } });
+      map.addLayer({ id: 'pin-line', type: 'line', source: 'pin', paint: { 'line-color': '#1D4E89', 'line-width': 2 } });
+    };
+    const removePinLayers = () => { ['pin-line', 'pin-fill'].forEach(id => map.getLayer(id) && map.removeLayer(id)); if (map.getSource('pin')) map.removeSource('pin'); };
+    return {
+      fit(now) { map.fitBounds([[PH[0][1], PH[0][0]], [PH[1][1], PH[1][0]]], { padding: padBox(), duration: now || RM ? 0 : 800 }); },
+      pin(lat, lon, label, exact, now) {
+        pin = { lat, lon, exact }; removePinLayers(); addPinLayers();
+        if (marker) marker.remove();
+        const el = document.createElement('div'); el.className = 'pin-mark'; el.innerHTML = `<span class="pin-tip">${esc(label)}</span><span class="pin-dot"></span>`;
+        marker = new lib.Marker({ element: el, anchor: 'bottom', offset: [0, 9] }).setLngLat([lon, lat]).addTo(map);
+        const ring = circleRing(lat, lon, pinR(exact) * 1.6), xs = ring.map(p => p[0]), ys = ring.map(p => p[1]);
+        map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: padBox(), maxZoom: 13.5, duration: now || RM ? 0 : 1400 });
+      },
+      clear() { pin = null; removePinLayers(); if (marker) { marker.remove(); marker = null; } },
+      resize() { map.resize(); },
+      retheme() { map.setStyle(vectorStyle(dark())); map.once('style.load', addPinLayers); },
+      project(lat, lon) { return map.project([lon, lat]); },
+      map
+    };
+  }
+  function leafletImpl() {
+    document.documentElement.classList.add('map-raster');
+    const map = L.map('map', { zoomControl: false, minZoom: 4, maxBounds: [[-32.0, 92.0], [38.0, 152.0]], maxBoundsViscosity: 1 });
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, noWrap: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
+    const PH_HOLES = [[[4.58, 120.32], [4.4, 119.9], [4.58, 119.48], [5.0, 119.3], [5.42, 119.48], [5.6, 119.9], [5.42, 120.32], [5.0, 120.5], [4.58, 120.32]], [[8.87, 118.82], [7.83, 117.29], [7.91, 116.87], [8.26, 116.63], [8.68, 116.72], [9.38, 117.21], [10.69, 118.53], [11.8, 119.17], [11.9, 119.36], [11.84, 119.8], [11.49, 120.05], [10.67, 120.23], [10.28, 120.17], [8.87, 118.82]], [[17.79, 119.87], [18.69, 120.2], [19.01, 120.5], [19.05, 121.32], [18.86, 121.85], [19.03, 122.28], [18.85, 122.66], [18.41, 122.85], [17.83, 122.77], [17.33, 123.01], [16.93, 123.04], [15.92, 122.68], [15.58, 122.15], [15.15, 122.07], [14.8, 122.17], [14.84, 122.92], [14.28, 124.17], [13.93, 124.48], [13.48, 124.46], [13.1, 124.72], [13.02, 125.48], [12.3, 126.04], [10.95, 126.32], [10.57, 126.06], [10.5, 125.8], [10.18, 125.79], [9.6, 126.68], [7.25, 127.08], [5.89, 126.59], [5.74, 126.14], [5.29, 125.87], [5.05, 125.55], [5.09, 125.15], [5.79, 123.81], [6.88, 123.4], [6.89, 122.99], [6.46, 122.42], [6.36, 121.97], [6.46, 121.76], [6.92, 121.44], [7.42, 121.42], [8.27, 121.81], [8.73, 122.52], [9.51, 121.87], [9.91, 121.87], [10.2, 121.51], [11.68, 121.37], [11.85, 120.84], [13.34, 119.79], [13.74, 119.84], [14.09, 120.1], [14.61, 119.65], [15.23, 119.4], [16.34, 119.33], [16.73, 119.47], [16.9, 119.79], [17.79, 119.87]], [[20.07, 122.43], [19.85, 121.9], [20.07, 121.37], [20.6, 121.15], [21.13, 121.37], [21.35, 121.9], [21.13, 122.43], [20.6, 122.65], [20.07, 122.43]]];
+    L.polygon([[[89, -179], [89, 179], [-89, 179], [-89, -179]], ...PH_HOLES], { className: 'ph-mask', interactive: false, stroke: false, fillOpacity: 1 }).addTo(map);
+    let layer = null;
+    return {
+      fit() { map.fitBounds(PH, pad()); },
+      pin(lat, lon, label, exact) {
+        if (layer) map.removeLayer(layer);
+        const r = pinR(exact);
+        layer = L.layerGroup([L.circle([lat, lon], { radius: r, color: '#1D4E89', weight: 2, fillColor: '#78A6E0', fillOpacity: .18 }),
+          L.circleMarker([lat, lon], { radius: 9, color: '#fff', weight: 3, fillColor: '#CF5921', fillOpacity: 1 }).bindTooltip(esc(label), { permanent: true, direction: 'top', offset: [0, -10], className: 'pin-tip' })]).addTo(map);
+        map.flyToBounds(L.latLng(lat, lon).toBounds(r * 3.2), Object.assign({ duration: RM ? 0 : 1.2, maxZoom: 15 }, pad()));
+      },
+      clear() { if (layer) { map.removeLayer(layer); layer = null; } },
+      resize() { map.invalidateSize(); },
+      project(lat, lon) { return map.latLngToContainerPoint([lat, lon]); },
+      map
+    };
+  }
+  vectorImpl().then(impl => MAP.use(impl)).catch(err => { console.warn('Vector map unavailable, using OpenStreetMap tiles:', err && err.message); document.getElementById('map').innerHTML = ''; MAP.use(leafletImpl()); });
   const geoCache = {};
   async function geocode(m, b) {
     const key = m.c + '|' + (b || ''); if (geoCache[key]) return geoCache[key];
@@ -309,7 +420,7 @@
         </ul>
         <p class="privacy">${I.lock}No sign-up. Your answers stay on your device.</p>
       </div>`, '', 'peek');
-    if (pinLayer) { map.removeLayer(pinLayer); pinLayer = null; pinnedFor = null; }
+    MAP.clear(); pinnedFor = null;
     fitPH();
     bindSearch();
     $$('[data-ex]').forEach(b => b.onclick = async () => { await loadPlaces(); const [br, mn] = b.dataset.ex.split('|'); const e = D.index.find(x => br ? (x.b === br && x.sub.startsWith(mn)) : (!x.b && x.name === mn)); if (e) choose(e); });
@@ -971,7 +1082,7 @@ Signatures are attached.`;
   $$('a', menu).forEach(a => a.addEventListener('click', () => { menu.hidden = true; }));
   const themeBtn = $('#theme-btn');
   const syncTheme = () => { themeBtn.textContent = document.documentElement.dataset.theme === 'dark' ? 'Light mode' : 'Dark mode'; };
-  themeBtn.onclick = () => { const d = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = d; try { localStorage.setItem('tubig-theme', d); } catch { /* */ } syncTheme(); menu.hidden = true; };
+  themeBtn.onclick = () => { const d = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = d; try { localStorage.setItem('tubig-theme', d); } catch { /* */ } syncTheme(); menu.hidden = true; MAP.retheme(); };
   syncTheme();
 
   /* ---------- router ---------- */
@@ -984,7 +1095,7 @@ Signatures are attached.`;
       document.title = { districts: 'Water districts · Tubig', district: 'Water district · Tubig', about: 'About · Tubig' }[v];
       await ({ districts: pageDistricts, district: () => pageDistrict(arg), about: pageAbout })[v](); $('#pages').scrollTop = 0; return;
     }
-    setTimeout(() => map.invalidateSize(), 30);
+    setTimeout(() => MAP.resize(), 30);
     document.title = 'Tubig · Check your water service';
     if (['owed', 'report', 'gap', 'act', 'bill', 'track', 'guide', 'log', 'petition'].includes(v)) {
       await loadPlaces();
