@@ -76,8 +76,8 @@
   }
 
   /* ---------- state ---------- */
-  const S = Object.assign({ muni: null, brgy: null, ptype: null, answers: {}, lat: null, lon: null, exact: false }, store.get('tubig-state', {}));
-  const save = () => store.set('tubig-state', { muni: S.muni, brgy: S.brgy, ptype: S.ptype, answers: S.answers, lat: S.lat, lon: S.lon, exact: S.exact, conc: S.conc, track: S.track, log: S.log });
+  const S = Object.assign({ muni: null, brgy: null, ptype: null, answers: {}, lat: null, lon: null, exact: false, here: false }, store.get('tubig-state', {}));
+  const save = () => store.set('tubig-state', { muni: S.muni, brgy: S.brgy, ptype: S.ptype, answers: S.answers, lat: S.lat, lon: S.lon, exact: S.exact, here: S.here, conc: S.conc, track: S.track, log: S.log });
   const muni = () => (S.muni && D.places) ? D.places.munis[D.muniByCode[S.muni]] : null;
   const wd = () => { const m = muni(); return m && m.wd != null ? D.districts[m.wd] : null; };
   const jvOp = () => (S.ptype === 'wd' && wd() && wd().op) ? wd().op : null;
@@ -101,17 +101,46 @@
      rivers and place names, built for BahaWatch from OpenStreetMap, Open Buildings and PSA/NAMRIA outlines), so nothing
      outside the country is drawn. Without WebGL, or if it fails to load, the Leaflet + OpenStreetMap map is used. */
   const PH = [[5.0, 117.0], [19.4, 126.6]];
-  const pad = () => isDesk() ? { paddingTopLeft: [452, 80], paddingBottomRight: [40, 40] } : { paddingTopLeft: [20, 70], paddingBottomRight: [20, sheetPx() + 20] };
+  const pad = () => isDesk() ? { paddingTopLeft: [452, 80], paddingBottomRight: [40, 40] } : { paddingTopLeft: [20, 70], paddingBottomRight: [64, sheetPx() + 20] };
   const padBox = () => { const p = pad(); return { top: p.paddingTopLeft[1], left: p.paddingTopLeft[0], bottom: p.paddingBottomRight[1], right: p.paddingBottomRight[0] }; };
   const pinR = exact => exact ? 700 : 2500;
   const MAP = {
     want: { t: 'fit' }, impl: null,
     fit() { this.want = { t: 'fit' }; if (this.impl) this.impl.fit(); },
     pin(lat, lon, label, exact) { this.want = { t: 'pin', a: [lat, lon, label, exact] }; if (this.impl) this.impl.pin(lat, lon, label, exact); },
+    area(...a) { this.want = { t: 'area', a }; if (this.impl) this.impl.area(...a); },
     clear() { this.want = { t: 'fit' }; if (this.impl) this.impl.clear(); },
     resize() { if (this.impl) this.impl.resize(); },
     retheme() { if (this.impl && this.impl.retheme) this.impl.retheme(); },
-    use(impl) { this.impl = impl; window.__tubigMap = impl; if (this.want.t === 'pin') impl.pin(...this.want.a, true); else impl.fit(true); }
+    use(impl) { this.impl = impl; window.__tubigMap = impl; if (this.want.t === 'pin') impl.pin(...this.want.a, true); else if (this.want.t === 'area') impl.area(...this.want.a, true); else impl.fit(true); }
+  };
+  /* Barangay and municipal outlines: PSGC 3Q 2026 boundaries (NAMRIA and PSA via OCHA COD-AB, CC BY-IGO), as compiled by
+     faeldon/philippines-psgc-shapefiles; simplified with mapshaper and split into one file per city or municipality
+     (data/bounds/<PSGC>.json). Each file holds its barangays (c = barangay PSGC) and the city's outline (c = 0). */
+  const BOUNDS_ATTR = 'Boundaries: NAMRIA, PSA (PSGC 3Q 2026)';
+  const bCache = {};
+  const loadBounds = m => { const k = +m.c; if (!(k in bCache)) bCache[k] = fetch(`data/bounds/${k}.json`).then(r => r.ok ? r.json() : null).catch(() => null); return bCache[k]; };
+  const G = {
+    polys: g => !g ? [] : g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [],
+    bbox(g) { const a = [180, 90, -180, -90]; G.polys(g).forEach(p => p[0].forEach(([x, y]) => { if (x < a[0]) a[0] = x; if (y < a[1]) a[1] = y; if (x > a[2]) a[2] = x; if (y > a[3]) a[3] = y; })); return a; },
+    inRing(x, y, r) { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; },
+    inside(x, y, g) { return G.polys(g).some(p => G.inRing(x, y, p[0]) && !p.slice(1).some(h => G.inRing(x, y, h))); },
+    segD(x, y, [ax, ay], [bx, by], k) { const px = (x - ax) * k, py = y - ay, dx = (bx - ax) * k, dy = by - ay, L2 = dx * dx + dy * dy, t = L2 ? Math.max(0, Math.min(1, (px * dx + py * dy) / L2)) : 0; return Math.hypot(px - t * dx, py - t * dy); },
+    // A point well inside the shape (for the pin and labels): the grid point farthest from the edge of its largest part.
+    label(g, n = 14) {
+      const ps = G.polys(g); if (!ps.length) return null;
+      let best = ps[0], ba = -1;
+      ps.forEach(p => { const b = G.bbox({ type: 'Polygon', coordinates: p }), a = (b[2] - b[0]) * (b[3] - b[1]); if (a > ba) { ba = a; best = p; } });
+      const pg = { type: 'Polygon', coordinates: best }, b = G.bbox(pg), k = Math.cos((b[1] + b[3]) / 2 * Math.PI / 180);
+      let pt = [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2], bd = -1;
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        const x = b[0] + (b[2] - b[0]) * (i + .5) / n, y = b[1] + (b[3] - b[1]) * (j + .5) / n;
+        if (!G.inside(x, y, pg)) continue;
+        let d = Infinity; best.forEach(r => { for (let q = 1; q < r.length; q++) d = Math.min(d, G.segD(x, y, r[q - 1], r[q], k)); });
+        if (d > bd) { bd = d; pt = [x, y]; }
+      }
+      return pt;
+    }
   };
   const fitPH = () => MAP.fit();
   const showPin = (lat, lon, label, exact) => MAP.pin(lat, lon, label, exact);
@@ -189,27 +218,51 @@
     if (map.keyboard) map.keyboard.disableRotation();
     map.addControl(new lib.NavigationControl({ showCompass: false }), 'top-right');
     await new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('map timeout')), 9000); map.once('load', () => { clearTimeout(t); res(); }); map.on('error', e => { if (e && e.sourceId === 'ofm') return; if (!map.isStyleLoaded()) { clearTimeout(t); rej(e.error || e); } }); });
-    let pin = null, marker = null;
-    const addPinLayers = () => {
-      if (!pin || map.getSource('pin')) return;
-      map.addSource('pin', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [circleRing(pin.lat, pin.lon, pinR(pin.exact))] } } });
-      map.addLayer({ id: 'pin-fill', type: 'fill', source: 'pin', paint: { 'fill-color': '#78A6E0', 'fill-opacity': .2 } });
-      map.addLayer({ id: 'pin-line', type: 'line', source: 'pin', paint: { 'line-color': '#1D4E89', 'line-width': 2 } });
+    // ov: what is drawn for the chosen place: its outline (area), and the neighboring barangays and city outline (ctx)
+    let ov = null, marker = null;
+    const OC = () => dark() ? { line: '#9EB8DB', fill: '#9EB8DB', ctx: '#9EB8DB', text: '#d8d2c8', halo: '#1f1e1c' }
+      : { line: '#1D4E89', fill: '#78A6E0', ctx: '#385F96', text: '#385F96', halo: '#fbf9f4' };
+    const addOv = () => {
+      if (!ov || map.getSource('pin')) return;
+      const c = OC();
+      if (ov.ctx) {
+        map.addSource('ctx', { type: 'geojson', data: ov.ctx, attribution: BOUNDS_ATTR });
+        map.addSource('ctx-pts', { type: 'geojson', data: ov.pts });
+        map.addLayer({ id: 'ctx-line', type: 'line', source: 'ctx', filter: ['!=', ['get', 'c'], 0], paint: { 'line-color': c.ctx, 'line-opacity': .5, 'line-width': ['interpolate', ['linear'], ['zoom'], 10, .6, 15, 1.3] } });
+        map.addLayer({ id: 'ctx-muni', type: 'line', source: 'ctx', filter: ['==', ['get', 'c'], 0], layout: { 'line-join': 'round' }, paint: { 'line-color': c.ctx, 'line-opacity': .85, 'line-width': 1.8, 'line-dasharray': [3, 2] } });
+        map.addLayer({ id: 'ctx-label', type: 'symbol', source: 'ctx-pts', minzoom: 12, layout: { 'text-field': ['get', 'n'], 'text-font': ['Noto Sans Regular'], 'text-size': 11.5, 'text-padding': 6, 'text-max-width': 8 }, paint: { 'text-color': c.text, 'text-halo-color': c.halo, 'text-halo-width': 1.6 } });
+      }
+      map.addSource('pin', { type: 'geojson', data: ov.area, attribution: ov.ctx ? BOUNDS_ATTR : undefined });
+      map.addLayer({ id: 'pin-fill', type: 'fill', source: 'pin', paint: { 'fill-color': c.fill, 'fill-opacity': .2 } });
+      map.addLayer({ id: 'pin-line', type: 'line', source: 'pin', layout: { 'line-join': 'round' }, paint: { 'line-color': c.line, 'line-width': 2.5 } });
     };
-    const removePinLayers = () => { ['pin-line', 'pin-fill'].forEach(id => map.getLayer(id) && map.removeLayer(id)); if (map.getSource('pin')) map.removeSource('pin'); };
+    const removeOv = () => {
+      ['ctx-label', 'ctx-muni', 'ctx-line', 'pin-line', 'pin-fill'].forEach(id => map.getLayer(id) && map.removeLayer(id));
+      ['pin', 'ctx', 'ctx-pts'].forEach(id => map.getSource(id) && map.removeSource(id));
+    };
+    const setMarker = (lat, lon, label) => {
+      if (marker) marker.remove();
+      const el = document.createElement('div'); el.className = 'pin-mark'; el.innerHTML = `<span class="pin-tip">${esc(label)}</span><span class="pin-dot"></span>`;
+      marker = new lib.Marker({ element: el, anchor: 'bottom', offset: [0, 9] }).setLngLat([lon, lat]).addTo(map);
+    };
     return {
       fit(now) { map.fitBounds([[PH[0][1], PH[0][0]], [PH[1][1], PH[1][0]]], { padding: padBox(), duration: now || RM ? 0 : 800 }); },
+      // Fallback when no boundary is on file: a circle around the geocoded point.
       pin(lat, lon, label, exact, now) {
-        pin = { lat, lon, exact }; removePinLayers(); addPinLayers();
-        if (marker) marker.remove();
-        const el = document.createElement('div'); el.className = 'pin-mark'; el.innerHTML = `<span class="pin-tip">${esc(label)}</span><span class="pin-dot"></span>`;
-        marker = new lib.Marker({ element: el, anchor: 'bottom', offset: [0, 9] }).setLngLat([lon, lat]).addTo(map);
+        removeOv(); ov = { area: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [circleRing(lat, lon, pinR(exact))] } } }; addOv();
+        setMarker(lat, lon, label);
         const ring = circleRing(lat, lon, pinR(exact) * 1.25), xs = ring.map(p => p[0]), ys = ring.map(p => p[1]);
         map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: padBox(), maxZoom: 15, duration: now || RM ? 0 : 1400 });
       },
-      clear() { pin = null; removePinLayers(); if (marker) { marker.remove(); marker = null; } },
+      area(f, ctx, pts, label, pt, now) {
+        removeOv(); ov = { area: f, ctx, pts }; addOv();
+        setMarker(pt[1], pt[0], label);
+        const b = G.bbox(f.geometry);
+        map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: padBox(), maxZoom: 15.5, duration: now || RM ? 0 : 1400 });
+      },
+      clear() { ov = null; removeOv(); if (marker) { marker.remove(); marker = null; } },
       resize() { map.resize(); },
-      retheme() { map.setStyle(vectorStyle(dark())); map.once('style.load', addPinLayers); },
+      retheme() { map.once('style.load', addOv); map.setStyle(vectorStyle(dark()), { diff: false }); },
       project(lat, lon) { return map.project([lon, lat]); },
       map
     };
@@ -231,6 +284,15 @@
           L.circleMarker([lat, lon], { radius: 9, color: '#fff', weight: 3, fillColor: '#CF5921', fillOpacity: 1 }).bindTooltip(esc(label), { permanent: true, direction: 'top', offset: [0, -10], className: 'pin-tip' })]).addTo(map);
         map.flyToBounds(L.latLng(lat, lon).toBounds(r * 3.2), Object.assign({ duration: RM ? 0 : 1.2, maxZoom: 15 }, pad()));
       },
+      area(f, ctx, pts, label, pt) {
+        if (layer) map.removeLayer(layer);
+        const shape = L.geoJSON(f, { interactive: false, style: { color: '#1D4E89', weight: 2.5, fillColor: '#78A6E0', fillOpacity: .2 } });
+        layer = L.layerGroup([
+          L.geoJSON(ctx, { interactive: false, attribution: BOUNDS_ATTR, style: x => x.properties.c === 0 ? { color: '#385F96', weight: 1.8, dashArray: '5 4', fill: false } : { color: '#385F96', weight: 1, opacity: .5, fill: false } }),
+          shape,
+          L.circleMarker([pt[1], pt[0]], { radius: 9, color: '#fff', weight: 3, fillColor: '#CF5921', fillOpacity: 1 }).bindTooltip(esc(label), { permanent: true, direction: 'top', offset: [0, -10], className: 'pin-tip' })]).addTo(map);
+        map.flyToBounds(shape.getBounds(), Object.assign({ duration: RM ? 0 : 1.2, maxZoom: 15.5 }, pad()));
+      },
       clear() { if (layer) { map.removeLayer(layer); layer = null; } },
       resize() { map.invalidateSize(); },
       project(lat, lon) { return map.latLngToContainerPoint([lat, lon]); },
@@ -251,8 +313,24 @@
     return null;
   }
   let pinnedFor = null;
+  const findArea = (fc, brgy) => fc && fc.features.find(x => brgy ? x.properties.c && norm(x.properties.n) === norm(brgy) : x.properties.c === 0);
   async function placeOnMap(force) {
     const m = muni(); if (!m) return;
+    // The real outline when we have it: the barangay (with its neighbors and the city line for context), or the city.
+    const fc = await loadBounds(m);
+    if (muni() !== m) return;
+    const f = findArea(fc, S.brgy);
+    if (f) {
+      const key = m.c + '|' + (S.brgy || '') + (S.here ? '|' + S.lat + ',' + S.lon : '');
+      if (pinnedFor === key && !force) return;
+      pinnedFor = key;
+      const pt = S.here && S.lat != null ? [S.lon, S.lat] : G.label(f.geometry, 16);
+      if (!S.here) { S.lat = pt[1]; S.lon = pt[0]; S.exact = !!S.brgy; save(); }
+      const others = fc.features.filter(x => x !== f);
+      const pts = { type: 'FeatureCollection', features: others.filter(x => x.properties.c).map(x => ({ type: 'Feature', properties: { n: x.properties.n }, geometry: { type: 'Point', coordinates: G.label(x.geometry, 8) } })) };
+      MAP.area(f, { type: 'FeatureCollection', features: others }, pts, S.brgy ? bLabel(S.brgy) : m.n, pt);
+      return;
+    }
     if (S.lat == null) { const g = await geocode(m, S.brgy); if (!g) return; S.lat = g.lat; S.lon = g.lon; S.exact = g.exact; save(); }
     const key = S.lat + ',' + S.lon;
     if (pinnedFor === key && !force) return;
@@ -485,7 +563,7 @@
     await ready; await loadPlaces();
     const m = D.places.munis[e.mi];
     if (S.muni !== m.c || S.brgy !== e.b) S.answers = {};
-    S.muni = m.c; S.brgy = e.b; S.ptype = detectType(m); S.lat = S.lon = null; save();
+    S.muni = m.c; S.brgy = e.b; S.ptype = detectType(m); S.lat = S.lon = null; S.here = false; save();
     go('#/owed');
   }
   function locate() {
@@ -501,9 +579,12 @@
         const pick = all.find(([m]) => core(m.n) === core(town) && (!prov || norm(prov).includes(norm(m.p).split(' ')[0]))) || all.find(([m]) => core(m.n) === core(town));
         if (!pick) throw 0;
         const [m, mi] = pick, names = [a.quarter, a.suburb, a.neighbourhood, a.village, a.hamlet].filter(Boolean).map(norm);
-        const b = (D.places.brgys[m.c] || []).find(([n]) => names.includes(norm(n)));
+        // The barangay whose official boundary contains you; failing that, the one OpenStreetMap names.
+        const fc = await loadBounds(m), inB = fc && fc.features.find(x => x.properties.c && G.inside(lon, lat, x.geometry));
+        const list = D.places.brgys[m.c] || [];
+        const b = (inB && list.find(([n]) => norm(n) === norm(inB.properties.n))) || list.find(([n]) => names.includes(norm(n)));
         await choose({ mi, b: b ? b[0] : null });
-        S.lat = lat; S.lon = lon; S.exact = true; save(); placeOnMap(true);
+        S.lat = lat; S.lon = lon; S.exact = true; S.here = true; save(); placeOnMap(true);
       } catch { toast("Couldn't match your location. Type your barangay."); }
     }, () => toast('Location not shared. Type your barangay.'), { timeout: 12000 });
   }
@@ -1090,13 +1171,13 @@ Signatures are attached.`;
       <h2>Questions</h2><div class="faq">
         <details><summary>Can't I just call my water provider?</summary><p>Yes, and that is the first step Tubig points you to. Every water district has a complaints desk and a Citizen's Charter, and the 8888 hotline and ARTA are there if nothing happens. What Tubig adds is the rule your provider has to meet, the right office to contact first and next, and a written complaint with a reference number, so there is a record if you need to escalate.</p></details>
         <details><summary>Will Tubig count reports from my barangay?</summary><p>Not yet. This prototype keeps everything on your device. A pilot, after ethics review, would let residents add an anonymous report (barangay, problem, date, no names), so councils and barangay halls can see how many households report the same problem. Until then, use Complain together to collect signatures on paper.</p></details>
-        <details><summary>Is my information stored?</summary><p>No accounts, nothing sent to us. Answers stay in your browser. The place you pick goes to OpenStreetMap to show it on the map.</p></details>
+        <details><summary>Is my information stored?</summary><p>No accounts, nothing sent to us. Answers stay in your browser. Barangay outlines load from this site. If an outline is missing, the place you pick goes to OpenStreetMap to find it on the map.</p></details>
         <details><summary>Why is there no minimum for hours or pressure?</summary><p>No national rule requires water districts to supply water 24 hours a day, at a set pressure, or in a set amount per person. Utilities regulated by NWRB and those run by local governments have minimums (18 hours a day and 8 psi under NWRB Res. 14-0921); water districts do not. LWUA and the Commission on Audit track hours of supply as a performance indicator, but each district sets its own target. Districts must meet national drinking-water quality standards and act on complaints within their Citizen's Charter times and 72 hours for 8888 complaints.</p></details>
         <details><summary>What if a private company runs my water district?</summary><p>Joint venture contracts reviewed so far promise 24-hour supply within 2 to 5 years and 10 psi within 4 to 5 years. These are contract terms, not regulations: only the water district's board can enforce them, by forfeiting the operator's performance bond or ending the contract. The contracts are usually not public, so ask your district for its annual joint venture compliance report. Your complaint goes to the water district, which answers for its partner.</p></details>
         <details><summary>Will this change?</summary><p>A bill creating a Water Regulatory Commission with power to set minimum service standards passed the House in December 2025 and is pending in the Senate. Until then, the gaps Tubig shows are gaps in the rules, not only in service.</p></details>
         <details><summary>Is this legal advice?</summary><p>No. Rules are summarized from an inventory of 240 obligations. Always check the linked source.</p></details>
         <details><summary>Are the contacts current?</summary><p>They come from official websites and Citizen's Charters and can change. Call to confirm.</p></details></div>
-      <p class="count" style="margin-top:32px">Data are preliminary and under human verification. Map © OpenStreetMap contributors. <a href="https://github.com/gregor-posadas/tubig">Source code</a></p>`;
+      <p class="count" style="margin-top:32px">Data are preliminary and under human verification. Map © OpenStreetMap contributors. Barangay and city boundaries: NAMRIA and PSA via OCHA (CC BY-IGO), PSGC 3Q 2026, compiled by <a href="https://github.com/faeldon/philippines-psgc-shapefiles">faeldon/philippines-psgc-shapefiles</a>. <a href="https://github.com/gregor-posadas/tubig">Source code</a></p>`;
   }
 
   /* ---------- menu, theme ---------- */
