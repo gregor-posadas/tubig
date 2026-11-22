@@ -319,18 +319,16 @@
       opts: [['yes', 'Yes'], ['no', 'No'], ['unsure', 'Not sure']] },
     { id: 'complaint', type: 'one', title: 'Have you reported a problem before?',
       opts: [['not', 'Not yet'], ['acted', 'Yes, and they fixed it quickly'], ['slow', 'Yes, no action after 3 days'], ['never', 'Yes, no action at all']] },
-    { id: 'bill', type: 'one', title: 'Has your water rate gone up this year?',
-      opts: [['no', 'No'], ['hearing', 'Yes, after a public hearing'], ['nohearing', 'Yes, and I never heard of a public hearing'], ['unsure', 'Not sure']] },
     { id: 'connect', type: 'one', title: 'Waiting for a new connection?',
       opts: [['no', 'No'], ['short', 'Yes, under a month'], ['long', 'Yes, over a month']] }
   ];
   const LABEL = {}; Q.forEach(q => LABEL[q.id] = Object.fromEntries(q.opts));
   const activeQ = () => Q.filter(q => !q.showIf || q.showIf(S.answers));
-  const EXAMPLE = { hours: '7', pressure: 'trickle', quality: ['color', 'particles'], outage: '1', complaint: 'slow', bill: 'unsure', connect: 'no' };
+  const EXAMPLE = { hours: '7', pressure: 'trickle', quality: ['color', 'particles'], outage: '1', complaint: 'slow', connect: 'no' };
 
   function evaluate() {
     const a = S.answers, t = S.ptype, out = [];
-    const push = (id, you, v, note, ask) => { const d = dim(id), r = ruleFor(d); out.push({ id, title: d.title, owed: r.text, short: shortRule(id), r, you, v, note, ask }); };
+    const push = (id, you, v, note, ask, auto) => { const d = dim(id), r = ruleFor(d); out.push({ id, title: d.title, owed: r.text, short: shortRule(id), r, you, v, note, ask, auto }); };
     if (a.hours != null) {
       const h = +a.hours, r = ruleFor(dim('hours')), you = LABEL.hours[a.hours];
       if (r.min == null) push('hours', you, h >= 24 ? 'met' : 'norule', h >= 24 ? '' : `No minimum is set for your provider. ${tgt('hours')}, but it is only a target.`, h >= 24 ? '' : "Tell me the district's own target for hours of supply in my barangay, and when it will be met.");
@@ -371,11 +369,16 @@
       else if (t === 'wd' || t === 'lgu') push('complaint', you, a.complaint === 'never' ? 'notmet' : 'check', "Your Citizen's Charter sets the time; 8888 complaints must be acted on within 72 hours.", 'Give me a reference number and act on my earlier report.');
       else push('complaint', you, 'check', ruleFor(dim('complaint')).text, 'Give me a reference number and act on my earlier report.');
     }
-    if (a.bill && a.bill !== 'no') {
-      const you = LABEL.bill[a.bill], r = ruleFor(dim('bill'));
-      if (r.status === 'none') push('bill', you, 'norule', 'No outside review of rates was found for this provider type.');
-      else if (a.bill === 'hearing') push('bill', you, 'met');
-      else push('bill', you, 'check', t === 'wd' ? 'Every rate increase needs a public hearing first. Ask for the notice and date.' : r.text, t === 'wd' ? 'Send me the date and notice of the public hearing held before the latest rate increase.' : 'Explain the basis for the latest rate increase.');
+    // Rates: looked up, not asked. LWUA's record of the district's latest approved rate (and, for Mabalacat, the
+    // state auditor's finding on the 2022 increase).
+    const tf = tariffFor();
+    if (isMCWD()) {
+      push('bill', 'Rates raised in 2022 without LWUA approval', 'check', "The state auditor found the 2022 increase was approved by NWRB but not by LWUA, which reviews water district rates. LWUA's record still shows the 2009 rate.", "Explain the legal basis of the rates I am charged, given the state auditor's finding that the 2022 increase was not approved by LWUA, and send me the current approved rate schedule.", true);
+      out[out.length - 1].short = 'Increases need LWUA review';
+    } else if (t === 'wd' && tf && tf.effective) {
+      const eff = parseD(tf.effective), months = (today() - eff) / (30.44 * 864e5);
+      if (months <= 12) push('bill', `Rates changed ${fmtDate(tf.effective)}`, 'check', 'Every water district rate increase needs a public hearing first. Ask for the notice and date.', 'Send me the date and notice of the public hearing held before the latest rate increase.', true);
+      if (months <= 12) out[out.length - 1].short = 'Public hearing before any increase';
     }
     if (a.billCheck) {
       const b = a.billCheck;
@@ -426,7 +429,7 @@
         <p class="section-label">How it works</p>
         <ul class="how">
           <li><span class="hi">${I.pin}</span><div><b>Find your barangay</b><span>We find your provider and its rules.</span></div></li>
-          <li><span class="hi">${I.list}</span><div><b>Answer 7 quick questions</b><span>Hours, pressure, quality, outages, bills.</span></div></li>
+          <li><span class="hi">${I.list}</span><div><b>Answer 6 quick questions</b><span>Hours, pressure, quality, outages, bills.</span></div></li>
           <li><span class="hi">${I.flask}</span><div><b>Document it</b><span>Check it isn't your pipes, then keep a water log. <a href="#/guide">See how</a></span></div></li>
           <li><span class="hi">${I.mail}</span><div><b>Send a complaint</b><span>A ready letter, script and contacts.</span></div></li>
         </ul>
@@ -620,7 +623,7 @@
       ${othersHTML(rows)}
       <a class="track-cta" href="#/guide">${I.list}<span><b>Before you send</b> Check it isn't your pipes, and gather proof</span>${I.chev}</a>
       <ul class="findings">${rows.map(r => `<li class="finding"><div class="f-top"><span class="f-name">${esc(r.title)}</span><span class="status ${r.v}"><span class="dot ${r.v}"></span>${VLAB[r.v]}</span></div>
-        <div class="f-compare"><div><p class="k">You said</p><p class="v">${esc(r.you)}</p></div><div><p class="k">The rule</p><p class="v">${esc(r.short || 'No rule')}</p></div></div>
+        <div class="f-compare"><div><p class="k">${r.auto ? 'Public record' : 'You said'}</p><p class="v">${esc(r.you)}</p></div><div><p class="k">The rule</p><p class="v">${esc(r.short || 'No rule')}</p></div></div>
         ${r.note ? `<p class="f-note">${esc(r.note)}</p>` : ''}</li>`).join('')}</ul>`,
       `<button class="btn" id="edit">Edit answers</button><button class="btn btn-primary" id="act">Write complaint</button>`, 'full');
     $('#back').onclick = $('#edit').onclick = () => go('#/report/1');
