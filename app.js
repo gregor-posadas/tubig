@@ -77,7 +77,7 @@
 
   /* ---------- state ---------- */
   const S = Object.assign({ muni: null, brgy: null, ptype: null, answers: {}, lat: null, lon: null, exact: false }, store.get('tubig-state', {}));
-  const save = () => store.set('tubig-state', { muni: S.muni, brgy: S.brgy, ptype: S.ptype, answers: S.answers, lat: S.lat, lon: S.lon, exact: S.exact, conc: S.conc, track: S.track });
+  const save = () => store.set('tubig-state', { muni: S.muni, brgy: S.brgy, ptype: S.ptype, answers: S.answers, lat: S.lat, lon: S.lon, exact: S.exact, conc: S.conc, track: S.track, log: S.log });
   const muni = () => (S.muni && D.places) ? D.places.munis[D.muniByCode[S.muni]] : null;
   const wd = () => { const m = muni(); return m && m.wd != null ? D.districts[m.wd] : null; };
   const jvOp = () => (S.ptype === 'wd' && wd() && wd().op) ? wd().op : null;
@@ -102,7 +102,7 @@
   L.control.zoom({ position: 'topright' }).addTo(map);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, noWrap: true, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
   const PH_HOLES = [[[4.58, 120.32], [4.4, 119.9], [4.58, 119.48], [5.0, 119.3], [5.42, 119.48], [5.6, 119.9], [5.42, 120.32], [5.0, 120.5], [4.58, 120.32]], [[8.87, 118.82], [7.83, 117.29], [7.91, 116.87], [8.26, 116.63], [8.68, 116.72], [9.38, 117.21], [10.69, 118.53], [11.8, 119.17], [11.9, 119.36], [11.84, 119.8], [11.49, 120.05], [10.67, 120.23], [10.28, 120.17], [8.87, 118.82]], [[17.79, 119.87], [18.69, 120.2], [19.01, 120.5], [19.05, 121.32], [18.86, 121.85], [19.03, 122.28], [18.85, 122.66], [18.41, 122.85], [17.83, 122.77], [17.33, 123.01], [16.93, 123.04], [15.92, 122.68], [15.58, 122.15], [15.15, 122.07], [14.8, 122.17], [14.84, 122.92], [14.28, 124.17], [13.93, 124.48], [13.48, 124.46], [13.1, 124.72], [13.02, 125.48], [12.3, 126.04], [10.95, 126.32], [10.57, 126.06], [10.5, 125.8], [10.18, 125.79], [9.6, 126.68], [7.25, 127.08], [5.89, 126.59], [5.74, 126.14], [5.29, 125.87], [5.05, 125.55], [5.09, 125.15], [5.79, 123.81], [6.88, 123.4], [6.89, 122.99], [6.46, 122.42], [6.36, 121.97], [6.46, 121.76], [6.92, 121.44], [7.42, 121.42], [8.27, 121.81], [8.73, 122.52], [9.51, 121.87], [9.91, 121.87], [10.2, 121.51], [11.68, 121.37], [11.85, 120.84], [13.34, 119.79], [13.74, 119.84], [14.09, 120.1], [14.61, 119.65], [15.23, 119.4], [16.34, 119.33], [16.73, 119.47], [16.9, 119.79], [17.79, 119.87]], [[20.07, 122.43], [19.85, 121.9], [20.07, 121.37], [20.6, 121.15], [21.13, 121.37], [21.35, 121.9], [21.13, 122.43], [20.6, 122.65], [20.07, 122.43]]];
-  L.polygon([[[89, -179], [89, 179], [-89, 179], [-89, -179]], ...PH_HOLES], { className: 'ph-mask', interactive: false, stroke: false, fillOpacity: .8 }).addTo(map);
+  L.polygon([[[89, -179], [89, 179], [-89, 179], [-89, -179]], ...PH_HOLES], { className: 'ph-mask', interactive: false, stroke: false, fillOpacity: 1 }).addTo(map);
   const pad = () => isDesk() ? { paddingTopLeft: [452, 80], paddingBottomRight: [40, 40] } : { paddingTopLeft: [20, 70], paddingBottomRight: [20, sheetPx() + 20] };
   const fitPH = () => map.fitBounds(PH, pad());
   let pinLayer = null;
@@ -401,6 +401,7 @@
       <p class="section-label">What you're owed</p>
       <div class="facts">${key.map(fact).join('')}</div>
       ${noHrs ? `<div class="callout">${I.alert}<p><b>No minimum hours or pressure.</b> No national rule sets them for ${S.ptype === 'wd' ? 'water districts' : 'your provider type'}. ${jvOp() ? `Your district's contract with ${esc(jvOp().replace(/ \(.*\)$/, ''))} may promise them, and only the district can enforce it. Tubig asks for that report.` : 'Tubig asks your provider for its own target.'}</p></div>` : ''}
+      <a class="track-cta" href="#/guide">${I.list}<span><b>Document the problem</b> Check it isn't your pipes, then keep records</span>${I.chev}</a>
       <p class="section-label">All rules</p>
       <div class="rules">${dims.map(row).join('')}</div>`,
       `<button class="btn" id="to-bill">${I.bill}Check bill</button><button class="btn btn-primary" id="to-report">Report a problem</button>`, 'half');
@@ -491,6 +492,7 @@
       <div class="verdict-hero"><p class="vh-big">${esc(head)}</p>
         <div class="vh-row">${['notmet', 'check', 'norule', 'met'].filter(k => c(k)).map(k => `<span><span class="dot ${k}"></span>${c(k)} ${VLAB[k].toLowerCase()}</span>`).join('')}</div></div>
       ${othersHTML(rows)}
+      <a class="track-cta" href="#/guide">${I.list}<span><b>Before you send</b> Check it isn't your pipes, and gather proof</span>${I.chev}</a>
       <ul class="findings">${rows.map(r => `<li class="finding"><div class="f-top"><span class="f-name">${esc(r.title)}</span><span class="status ${r.v}"><span class="dot ${r.v}"></span>${VLAB[r.v]}</span></div>
         <div class="f-compare"><div><p class="k">You said</p><p class="v">${esc(r.you)}</p></div><div><p class="k">The rule</p><p class="v">${esc(r.short || 'No rule')}</p></div></div>
         ${r.note ? `<p class="f-note">${esc(r.note)}</p>` : ''}</li>`).join('')}</ul>`,
@@ -524,7 +526,8 @@
       <p class="h-sub">To ${esc(providerName())}${issues.length ? `, about ${issues.length} issue${issues.length > 1 ? 's' : ''}` : ''}.</p>
       <div class="seg" role="tablist">${Object.entries(tabs).map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${k === actTab}">${l}</button>`).join('')}</div>
       <div role="tabpanel">${body}</div>
-      <a class="track-cta" href="#/track">${I.clock}<span><b>Sent it or called?</b> Track when they have to answer</span>${I.chev}</a>`, foot, 'full');
+      <a class="track-cta" href="#/track">${I.clock}<span><b>Sent it or called?</b> Track when they have to answer</span>${I.chev}</a>
+      <a class="track-cta" href="#/petition">${I.list}<span><b>Neighbors have it too?</b> Make a joint complaint for your barangay or council</span>${I.chev}</a>`, foot, 'full');
     $('#back').onclick = () => go('#/gap');
     $$('[data-tab]').forEach(b => b.onclick = () => { actTab = b.dataset.tab; viewAct(); });
     const ta = $('#letter');
@@ -559,7 +562,7 @@ Good day.
 I am a customer at [house number and street], ${where}. I am writing to report problems with the water service at my connection.
 
 ${lines.length ? lines.join('\n') : '- [Describe the problem]'}
-
+${logParagraph()}
 I respectfully ask that you:
 ${asks.map((a, i) => `${i + 1}. ${a}`).join('\n')}${asks.length ? '\n' : ''}${asks.length + 1}. Send me a written reply with a reference number for this complaint.
 ${S.ptype === 'wd' && asks.some(a => /^Send me the /.test(a)) ? '\nAs a government-owned corporation, the district is covered by Executive Order No. 2, s. 2016 on Freedom of Information. Please treat my requests for documents as FOI requests.\n' : ''}
@@ -663,6 +666,165 @@ Contact: [phone or email]`;
     $$('[data-done]').forEach(b => b.onclick = () => { t.done = t.done || {}; t.done[b.dataset.done] = !t.done[b.dataset.done]; save(); viewTrack(); });
     const rs = $('#t-ref-save'); if (rs) rs.onclick = () => { t.ref = $('#t-ref2').value.trim(); save(); viewTrack(); };
     $('#t-reset').onclick = () => { S.track = null; save(); viewTrack(); };
+  }
+
+
+  /* GUIDE: how to document a problem so it holds up */
+  const GUIDE = [
+    { id: 'pipes', icon: 'tool', title: "Is it your pipes or theirs?", steps: [
+      'Use the tap closest to your water meter for every check. It is usually outside, before any tank, pump or filter. If the water is fine there but not inside, the problem is likely your pipes, tank or pump.',
+      'Ask two or three neighbors on your street. If they have the same problem at the same times, it is the supply.',
+      'Check every tap. If only one tap is affected, the problem is that tap or its pipe.',
+      'Run the cold tap for 1 to 2 minutes. If dirty water clears, it was sitting in your pipes. If it stays dirty, report it.',
+      'Do a leak test before blaming a high bill: close every tap and your tank’s inlet, write down the meter reading, use no water for 30 minutes, then read it again. If the meter moved, there is a leak on your side.'
+    ], src: 'Portland Water Bureau, discolored water troubleshooting; utility meter leak-test guides' },
+    { id: 'hours', icon: 'clock', title: 'No water or only a few hours', steps: [
+      'Keep a log for at least 7 days, so it covers weekdays and the weekend.',
+      'Each day, write the time the water comes and the time it stops, at the tap nearest the meter.',
+      'Take a photo of the meter when water starts and when it stops. The photo time is your record.',
+      'Save any advisory from your provider (screenshot of the post or text) with its date.'
+    ], src: 'Tubig method: a 7-day supply diary with time-stamped photos' },
+    { id: 'pressure', icon: 'gauge', title: 'Weak flow', steps: [
+      'Bucket test: turn off every other tap, open the tap nearest the meter fully, and time how many seconds a 1-liter container takes to fill.',
+      'Liters per minute = 60 ÷ seconds. Twelve seconds means 5 L/min. A UK water company treats under 9 L/min as low.',
+      'Repeat at the same times each day, for example 7 AM and 7 PM, when demand is highest.',
+      'For a pressure reading, a screw-on tap pressure gauge from a hardware store shows psi. Utilities under MWSS and NWRB must supply at least 7 to 8 psi.'
+    ], src: 'Yorkshire Water flow test; MWSS and NWRB service obligations' },
+    { id: 'quality', icon: 'flask', title: 'Dirty, cloudy or smelly water', steps: [
+      'Fill a clear glass and photograph it against white paper in daylight, twice: the first water out, and after running the tap 2 minutes.',
+      'Cloudy water that clears from the bottom up within 3 minutes is only air. Particles or color that stay are worth reporting.',
+      'Write down the color, any smell (chlorine, rotten egg, sewage) and which taps are affected.',
+      'Chlorine test strips or drops (from pool or aquarium shops) show free chlorine. The WHO recommends at least 0.2 mg/L at the tap; a zero reading in piped water is worth reporting.',
+      'Do not drink water that is discolored or smells of sewage. Boil water or use another source until it is fixed.'
+    ], src: 'Portland Water Bureau; WHO Guidelines for Drinking-water Quality' },
+    { id: 'lab', icon: 'list', title: 'Proof of contamination', steps: [
+      'Only a test by a DOH-accredited laboratory counts as proof that water fails the national standard (PNSDW 2017).',
+      'Ask the lab for a sterile bottle and its instructions. Usually: remove any filter or aerator, run the tap nearest the meter for 2 to 3 minutes, fill without touching the inside, and deliver it cool the same day.',
+      'You can also ask your city or municipal health office to have the sanitary inspector test it.'
+    ], src: 'DOH Administrative Order 2017-0010 (PNSDW 2017), Sec. VI.2' },
+    { id: 'bill', icon: 'bill', title: 'Bills and meter readings', steps: [
+      'Photograph your meter on the same day each month. Compare the reading with the consumption on your bill.',
+      'Use Check bill to compare the amount with the approved rate.',
+      'Keep every bill and receipt.'
+    ], src: 'Tubig method' },
+    { id: 'health', icon: 'alert', title: 'If someone got sick', steps: [
+      'Go to your barangay health station or rural health unit first, and tell them about the water.',
+      'Ask them to record it. Health offices track water-borne illness by barangay.'
+    ], src: 'DOH' }
+  ];
+  function viewGuide() {
+    render(`<button class="back" id="back">${I.left}Back</button>
+      <h2 class="h-title">Document the problem</h2>
+      <p class="h-sub">Good records get faster action. They also show the problem is the supply, not your pipes.</p>
+      <a class="track-cta" href="#/log">${I.list}<span><b>Keep a water log</b> ${S.log && S.log.length ? `${S.log.length} day${S.log.length > 1 ? 's' : ''} logged` : 'Takes a minute a day'}</span>${I.chev}</a>
+      <div class="rules guide">${GUIDE.map((g, i) => `<details class="rule" ${i === 0 ? 'open' : ''}><summary><span class="ricon binding">${I[g.icon]}</span><span><b>${esc(g.title)}</b></span>${I.chev}</summary>
+        <div class="rbody"><ol class="gsteps">${g.steps.map(t => `<li>${esc(t)}</li>`).join('')}</ol><p class="src">Source: ${esc(g.src)}</p></div></details>`).join('')}</div>
+      <p class="src-line">Write the date, time and place on everything. Keep the original photos.</p>`,
+      `<a class="btn" href="#/log">${I.list}Water log</a><button class="btn btn-primary" id="to-report">Report a problem</button>`, 'full');
+    $('#back').onclick = () => history.length > 1 ? history.back() : go('#/owed');
+    $('#to-report').onclick = () => go('#/report/1');
+  }
+
+  /* LOG: a simple daily water diary kept on the device */
+  const COLORS = [['clear', 'Clear'], ['cloudy', 'Cloudy'], ['brown', 'Brown or yellow'], ['particles', 'Sand or bits']];
+  const hoursBetween = (a, b) => { if (!a || !b) return null; const [h1, m1] = a.split(':').map(Number), [h2, m2] = b.split(':').map(Number); let d = (h2 * 60 + m2) - (h1 * 60 + m1); if (d < 0) d += 1440; return d / 60; };
+  function logSummary() {
+    const L = (S.log || []).slice().sort((a, b) => a.date.localeCompare(b.date)); if (!L.length) return null;
+    const hrs = L.map(e => e.none ? 0 : hoursBetween(e.from, e.to)).filter(h => h != null);
+    const flows = L.map(e => e.secs > 0 ? 60 / e.secs : null).filter(v => v != null);
+    const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+    return { n: L.length, first: L[0].date, last: L[L.length - 1].date, hrs: avg(hrs), noWater: L.filter(e => e.none).length, flow: avg(flows), dirty: L.filter(e => e.color && e.color !== 'clear').length, smell: L.filter(e => e.smell).length };
+  }
+  function viewLog() {
+    S.log = S.log || [];
+    const sm = logSummary(), r1 = v => Math.round(v * 10) / 10;
+    render(`<button class="back" id="back">${I.left}Guide</button>
+      <h2 class="h-title">Water log</h2>
+      <p class="h-sub">One entry a day, at the tap nearest your meter. It stays on this device and goes into your complaint.</p>
+      ${sm ? `<div class="facts log-sum"><div class="fact"><span class="fk">Days logged</span><span class="fv">${sm.n}</span></div><div class="fact"><span class="fk">Water per day</span><span class="fv">${sm.hrs == null ? '—' : r1(sm.hrs) + ' h avg'}</span></div><div class="fact"><span class="fk">Flow</span><span class="fv">${sm.flow == null ? '—' : r1(sm.flow) + ' L/min avg'}</span></div><div class="fact"><span class="fk">Dirty or smelly</span><span class="fv">${sm.dirty + sm.smell ? `${Math.max(sm.dirty, sm.smell)} of ${sm.n} days` : 'None'}</span></div></div>` : ''}
+      <form id="log-form" class="log-form">
+        <div class="field"><label for="l-date">Date</label><input id="l-date" class="select" type="date" value="${isoD(today())}" max="${isoD(today())}" required></div>
+        <div class="field row2"><div><label for="l-from">Water came at</label><input id="l-from" class="select" type="time"></div><div><label for="l-to">Stopped at</label><input id="l-to" class="select" type="time"></div></div>
+        <label class="check"><input id="l-none" type="checkbox"> No water at all today</label>
+        <div class="field"><label for="l-secs">Seconds to fill 1 liter (optional)</label><input id="l-secs" class="select" type="number" inputmode="decimal" min="1" step="0.5"></div>
+        <div class="field"><label for="l-color">Water looked</label><select id="l-color" class="select">${COLORS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></div>
+        <label class="check"><input id="l-smell" type="checkbox"> Bad smell or taste</label>
+        <div class="field"><label for="l-note">Note (optional)</label><input id="l-note" class="select" type="text" placeholder="e.g. photo 7:02 AM, neighbor same"></div>
+      </form>
+      ${S.log.length ? `<p class="section-label">Entries</p><ul class="log-list">${S.log.slice().sort((a, b) => b.date.localeCompare(a.date)).map(e => `<li><b>${esc(shortD(parseD(e.date)))}</b><span>${e.none ? 'No water' : e.from && e.to ? `${esc(e.from)} to ${esc(e.to)} (${r1(hoursBetween(e.from, e.to))} h)` : 'Hours not noted'}${e.secs ? ` · ${r1(60 / e.secs)} L/min` : ''} · ${esc((COLORS.find(c => c[0] === e.color) || [, ''])[1])}${e.smell ? ' · smell' : ''}${e.note ? ` · ${esc(e.note)}` : ''}</span><button class="btn btn-quiet icon-only" data-del="${esc(e.date)}" aria-label="Delete ${esc(e.date)}">${I.x}</button></li>`).join('')}</ul>
+        <div class="tool-row"><button class="btn btn-sm" id="l-csv">${I.down}Download (CSV)</button></div>` : ''}`,
+      `<button class="btn btn-primary" id="l-save">Save today's entry</button>`, 'full');
+    $('#back').onclick = () => go('#/guide');
+    $('#l-none').onchange = e => { $('#l-from').disabled = $('#l-to').disabled = e.target.checked; };
+    $('#l-save').onclick = () => {
+      const e = { date: $('#l-date').value || isoD(today()), from: $('#l-from').value, to: $('#l-to').value, none: $('#l-none').checked, secs: parseFloat($('#l-secs').value) || null, color: $('#l-color').value, smell: $('#l-smell').checked, note: $('#l-note').value.trim() };
+      S.log = S.log.filter(x => x.date !== e.date).concat(e); save(); toast('Entry saved'); viewLog();
+    };
+    $$('[data-del]').forEach(b => b.onclick = () => { S.log = S.log.filter(x => x.date !== b.dataset.del); save(); viewLog(); });
+    const csv = $('#l-csv'); if (csv) csv.onclick = () => {
+      const rows = [['date', 'water_from', 'water_to', 'no_water', 'hours', 'seconds_per_liter', 'liters_per_minute', 'color', 'smell', 'note']].concat(S.log.slice().sort((a, b) => a.date.localeCompare(b.date)).map(e => [e.date, e.from, e.to, e.none ? 'yes' : 'no', e.none ? 0 : (hoursBetween(e.from, e.to) ?? ''), e.secs ?? '', e.secs ? r1(60 / e.secs) : '', e.color, e.smell ? 'yes' : 'no', e.note]));
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')], { type: 'text/csv' })); a.download = 'water-log.csv'; a.click(); toast('Log downloaded');
+    };
+  }
+  function logParagraph() {
+    const sm = logSummary(); if (!sm || sm.n < 2) return '';
+    const r1 = v => Math.round(v * 10) / 10, parts = [];
+    if (sm.hrs != null) parts.push(`water was available ${r1(sm.hrs)} hours a day on average${sm.noWater ? `, with no water at all on ${sm.noWater} day${sm.noWater > 1 ? 's' : ''}` : ''}`);
+    if (sm.flow != null) parts.push(`flow at the tap nearest my meter averaged ${r1(sm.flow)} liters per minute`);
+    if (sm.dirty) parts.push(`the water was discolored on ${sm.dirty} of ${sm.n} days`);
+    if (sm.smell) parts.push(`it smelled or tasted bad on ${sm.smell} day${sm.smell > 1 ? 's' : ''}`);
+    return parts.length ? `\nI kept a daily log for ${sm.n} days (${sm.first} to ${sm.last}): ${parts.join('; ')}. I can share the full log and photos.\n` : '';
+  }
+
+  /* PETITION: a joint complaint neighbors can sign and bring to the barangay, council or district */
+  const PET_TO = {
+    barangay: { name: 'Punong Barangay and Sangguniang Barangay', ask: ['Pass a resolution asking the water provider to restore adequate service in our barangay and report back by a set date.', 'Refer this petition to the city or municipal council.'] },
+    council: { name: 'city or municipal council', ask: ['Hold a hearing on water service in our barangay, with the water district and its operator present.', 'Ask the provider to report hours of supply, pressure and water-quality results for our barangay.'] },
+    board: { name: 'Board of Directors of the water district', ask: ['Act on these problems and tell us the date service will be restored.', 'Release the operator’s performance report and the action the board has taken where targets were missed.'] },
+    mayor: { name: 'Office of the Mayor', ask: ['Convene the water provider, the barangay and the health office to fix the supply in our barangay.', 'Report the result to the residents who signed.'] }
+  };
+  let petTo = 'barangay';
+  function petitionText() {
+    const rows = (S.rows || evaluate()).filter(r => r.v !== 'met' && ['hours', 'pressure', 'quality', 'outage', 'connect'].includes(r.id)), sm = logSummary();
+    const m = muni(), to = Object.assign({}, PET_TO[petTo]);
+    if (petTo === 'council') to.name = /city/i.test(m.n) ? `Sangguniang Panlungsod of ${m.n.replace(/^City of /, '')}` : `Sangguniang Bayan of ${m.n}`;
+    if (petTo === 'mayor') to.name = `Office of the Mayor, ${m.n}`;
+    const probs = rows.length ? rows.map(r => `- ${r.title}: ${r.you}${r.v === 'notmet' ? ` (the rule: ${r.short})` : ''}`).join('\n') : '- [Describe the problem]';
+    const ctx = isMCWD() ? `\nThe Commission on Audit reports that the district's operator logged ${fmtN(1490)} complaints in 2024: 40% (603) about no water and 43% (645) about low pressure.\n` : '';
+    return `${new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
+
+To: ${to.name}
+${placeLabel()}
+
+Subject: Joint complaint on water service in ${placeLabel()}
+
+We, the undersigned residents of ${placeLabel()}, report the following problems with the water service from ${providerName()}:
+
+${probs}
+${ctx}${sm && sm.n >= 2 ? `\nOne household kept a daily log for ${sm.n} days${sm.hrs != null ? `: water ${Math.round(sm.hrs * 10) / 10} hours a day on average` : ''}. Signatories can provide photos and records.\n` : ''}
+We respectfully ask that you:
+${to.ask.map((a, i) => `${i + 1}. ${a}`).join('\n')}
+
+Contact person: [name, phone]
+
+Signatures are attached.`;
+  }
+  function viewPetition() {
+    render(`<button class="back" id="back">${I.left}Complaint</button>
+      <h2 class="h-title">Complain together</h2>
+      <p class="h-sub">One letter signed by many households is harder to ignore. Print it, collect signatures, and bring it in.</p>
+      <div class="field"><label for="p-to">Send to</label><select id="p-to" class="select">${Object.entries({ barangay: 'Barangay captain and council', council: 'City or municipal council', board: 'Water district board', mayor: 'Mayor' }).map(([k, v]) => `<option value="${k}" ${k === petTo ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></div>
+      <label for="p-text" class="sr-only">Joint complaint</label><textarea id="p-text" class="letter" spellcheck="true">${esc(petitionText())}</textarea>
+      <p class="src-line">Printing adds a signature sheet with spaces for 20 households: name, address or purok, problems and signature. Only collect what people agree to share.</p>`,
+      `<button class="btn" id="p-copy">${I.copy}Copy</button><button class="btn btn-primary" id="p-print">${I.print}Print to sign</button>`, 'full');
+    $('#back').onclick = () => go('#/act');
+    $('#p-to').onchange = e => { petTo = e.target.value; $('#p-text').value = petitionText(); };
+    $('#p-copy').onclick = async () => { try { await navigator.clipboard.writeText($('#p-text').value); toast('Copied'); } catch { $('#p-text').select(); } };
+    $('#p-print').onclick = () => {
+      const pl = $('#print-letter');
+      pl.innerHTML = `<div class="pl-text">${esc($('#p-text').value)}</div><div class="pl-sheet"><h2>Signature sheet: ${esc(placeLabel())}</h2><table><thead><tr><th>#</th><th>Name</th><th>Address or purok</th><th>Problems</th><th>Since when</th><th>Signature</th></tr></thead><tbody>${Array.from({ length: 20 }, (_, i) => `<tr><td>${i + 1}</td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')}</tbody></table></div>`;
+      window.print(); setTimeout(() => { pl.innerHTML = ''; }, 1000);
+    };
   }
 
   /* BILL */
@@ -822,10 +984,10 @@ Contact: [phone or email]`;
     }
     setTimeout(() => map.invalidateSize(), 30);
     document.title = 'Tubig · Check your water service';
-    if (['owed', 'report', 'gap', 'act', 'bill', 'track'].includes(v)) {
+    if (['owed', 'report', 'gap', 'act', 'bill', 'track', 'guide', 'log', 'petition'].includes(v)) {
       await loadPlaces();
       if (!muni()) { go('#/'); return; }
-      ({ owed: viewOwed, report: () => viewReport(+arg || 1), gap: viewGap, act: viewAct, bill: viewBill, track: viewTrack })[v]();
+      ({ owed: viewOwed, report: () => viewReport(+arg || 1), gap: viewGap, act: viewAct, bill: viewBill, track: viewTrack, guide: viewGuide, log: viewLog, petition: viewPetition })[v]();
       placeOnMap();
     } else viewSearch();
     if (v) $('#panel').focus({ preventScroll: true });
