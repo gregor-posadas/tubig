@@ -628,7 +628,7 @@
   function viewOwed() {
     const m = muni(), dims = D.ob.dimensions;
     const key = ['hours', 'pressure', 'quality', 'bill', 'complaint', 'outage'];
-    const fact = id => { const d = dim(id), r = ruleFor(d); return `<button class="fact ${r.status === 'none' ? 'none' : ''}" data-open="${id}" type="button"><span class="fk">${I[DIM_ICON[id]]}${esc(d.title)}</span><span class="fv">${esc(shortRule(id))}</span></button>`; };
+    const fact = id => { const d = dim(id), r = ruleFor(d); return `<button class="fact ${r.status === 'none' && !(id === 'hours' && isMCWD()) ? 'none' : ''}" data-open="${id}" type="button"><span class="fk">${I[DIM_ICON[id]]}${esc(d.title)}</span><span class="fv">${esc(shortRule(id))}</span></button>`; };
     const row = d => { const r = ruleFor(d); return `<details class="rule" id="r-${d.id}"><summary><span class="ricon ${r.status}">${ST_ICON[r.status]}</span><span><b>${esc(d.title)}${r.status === 'unconfirmed' ? '<span class="tag-mini">text not yet confirmed</span>' : ''}</b><span class="rsum">${esc(shortRule(d.id) || (r.status === 'none' ? 'No rule' : 'Required'))}</span></span>${I.chev}</summary>
       <div class="rbody"><p>${esc(r.text)}</p>${r.status === 'none' && d.target ? `<p>For comparison: ${esc(d.target.text)} (a target, not a requirement)</p>` : ''}
       ${d.id === 'bill' && S.ptype === 'wd' ? `<p><a href="#/bill">Check your bill against the tariff</a></p>` : ''}
