@@ -79,6 +79,7 @@
 
   /* ---------- state ---------- */
   const S = Object.assign({ muni: null, brgy: null, ptype: null, answers: {}, lat: null, lon: null, exact: false, here: false }, store.get('tubig-state', {}));
+  upgradeAnswers(S.answers);
   const save = () => store.set('tubig-state', { muni: S.muni, brgy: S.brgy, ptype: S.ptype, answers: S.answers, lat: S.lat, lon: S.lon, exact: S.exact, here: S.here, conc: S.conc, track: S.track, log: S.log, groups: S.groups });
   const muni = () => (S.muni && D.places) ? D.places.munis[D.muniByCode[S.muni]] : null;
   const wd = () => { const m = muni(); return m && m.wd != null ? D.districts[m.wd] : null; };
@@ -402,14 +403,24 @@
       opts: [['none', 'Never ran out'], ['lt1', 'Less than a day'], ['1', '1 to 3 days'], ['4', '4 to 14 days'], ['15', '15 days or more']] },
     { id: 'charged', type: 'one', showIf: a => a.outage === '15', title: 'Were you still billed the minimum charge for that time?',
       opts: [['yes', 'Yes'], ['no', 'No'], ['unsure', 'Not sure']] },
-    { id: 'complaint', type: 'one', title: 'Have you reported a problem before?',
-      opts: [['not', 'Not yet'], ['acted', 'Yes, and they fixed it quickly'], ['slow', 'Yes, no action after 3 days'], ['never', 'Yes, no action at all']] },
+    { id: 'complaint', type: 'one', title: 'Have you reported a problem before?', help: 'To your provider, its operator, 8888 or the barangay.',
+      opts: [['not', 'Not yet'], ['yes', 'Yes']] },
+    { id: 'reported', type: 'date', showIf: a => a.complaint === 'yes', title: 'When did you last report it?', help: 'Your most recent report. A close guess is fine.', opts: [] },
+    { id: 'reply', type: 'one', showIf: a => a.complaint === 'yes', title: 'Has anyone acted on it?',
+      opts: [['fixed', 'Yes, and it was fixed'], ['partial', 'Someone replied or came, but it is not fixed'], ['none', 'No response at all']] },
     { id: 'connect', type: 'one', title: 'Waiting for a new connection?',
       opts: [['no', 'No'], ['short', 'Yes, under a month'], ['long', 'Yes, over a month']] }
   ];
   const LABEL = {}; Q.forEach(q => LABEL[q.id] = Object.assign(LABEL[q.id] || {}, Object.fromEntries(q.opts.map(([v, l]) => [v, l]))));
   const activeQ = () => Q.filter(q => !q.showIf || q.showIf(S.answers));
-  const EXAMPLE = { hours: '7', floors: '2', pressure: 'trickle', quality: ['color', 'particles'], outage: '1', complaint: 'slow', connect: 'no' };
+  const EXAMPLE = { hours: '7', floors: '2', pressure: 'trickle', quality: ['color', 'particles'], outage: '1', complaint: 'yes', reply: 'none', connect: 'no' };
+  const exampleAnswers = () => Object.assign(JSON.parse(JSON.stringify(EXAMPLE)), { reported: isoD(addDays(today(), -12)) });
+  // Answers saved before the complaint question was split into date and response.
+  function upgradeAnswers(a) {
+    const old = { acted: 'fixed', slow: 'none', never: 'none' }[a.complaint];
+    if (old) { a.complaint = 'yes'; a.reply = a.reply || old; }
+    return a;
+  }
 
   function evaluate() {
     const a = S.answers, t = S.ptype, out = [];
@@ -447,12 +458,21 @@
         else push('outage', you, 'notmet', 'Unplanned outages must be fixed within 6 hours' + (a.outage === '15' ? '; over 15 days earns a bill rebate.' : '.'), a.outage === '15' ? 'Credit the rebate owed for a failure lasting over 15 days.' : 'Explain why service was not restored within 6 hours.');
       } else push('outage', you, a.outage === 'none' ? 'met' : 'norule', a.outage === 'none' ? '' : 'No rule on restoring service was found for this provider type.', 'Explain the cause of the interruption and when service will be restored.');
     }
-    if (a.complaint && a.complaint !== 'not') {
-      const you = LABEL.complaint[a.complaint];
-      if (a.complaint === 'acted') push('complaint', you, 'met');
-      else if (isMCWD()) push('complaint', you, 'notmet', "Mabalacat's Citizen's Charter promises action on service requests within 24 hours.", 'Give me a reference number and act on my earlier report.');
-      else if (t === 'wd' || t === 'lgu') push('complaint', you, a.complaint === 'never' ? 'notmet' : 'check', "Your Citizen's Charter sets the time; 8888 complaints must be acted on within 72 hours.", 'Give me a reference number and act on my earlier report.');
-      else push('complaint', you, 'check', ruleFor(dim('complaint')).text, 'Give me a reference number and act on my earlier report.');
+    if (a.complaint === 'yes') {
+      // How long they have to act, counted from the date of the last report.
+      const lim = isMCWD() ? { due: d => addDays(d, 1), txt: "Mabalacat's Citizen's Charter promises action on service requests within 24 hours." }
+        : (t === 'wd' || t === 'lgu') ? { due: d => addWorkDays(d, 3), txt: 'Simple requests must be acted on within 3 working days (Ease of Doing Business Act), or within 72 hours if filed through 8888.' }
+        : t === 'mwss' ? { due: d => addDays(d, 7), txt: 'Complaints must be acted on "with dispatch".' }
+        : t === 'private' ? { due: d => addDays(d, 10), txt: 'A written, sworn complaint filed with NWRB must be answered within 10 days.' } : null;
+      const when = a.reported ? parseD(a.reported) : null, due = when && lim ? lim.due(when) : null, past = due && today() > due;
+      const state = { fixed: 'fixed', partial: 'they responded, but not fixed', none: 'no response' }[a.reply] || 'no answer given';
+      const you = when ? `Reported ${longD(when)}, ${state}` : `Reported, ${state}`;
+      const ask = 'Give me a reference number and act on my earlier report' + (when ? ` of ${shortD(when)}.` : '.');
+      if (a.reply === 'fixed') push('complaint', you, 'met');
+      else if (!lim) push('complaint', you, 'check', ruleFor(dim('complaint')).text, ask);
+      else if (a.reply === 'partial') push('complaint', you, 'check', `They acted, but the problem remains. ${lim.txt} Ask for a written plan with dates.`, 'Tell me in writing what was done on my earlier report and when the problem will be fixed.');
+      else if (due && !past) push('complaint', you, 'check', `${lim.txt} They have until ${longD(due)}.`, ask);
+      else push('complaint', you, due || isMCWD() ? 'notmet' : 'check', lim.txt + (due ? ` The deadline was ${longD(due)}.` : ''), ask);
     }
     // Rates: looked up, not asked. LWUA's record of the district's latest approved rate (and, for Mabalacat, the
     // state auditor's finding on the 2022 increase).
@@ -642,7 +662,9 @@
       <p class="q-count">Question ${n} of ${qs.length}</p>
       <h2 class="q-title" id="q-title">${esc(q.title)}</h2>${q.help ? `<p class="q-help">${esc(q.help)}</p>` : ''}
       ${howHTML(q.how)}
-      <div class="choices" role="${q.type === 'many' ? 'group' : 'radiogroup'}" aria-labelledby="q-title">
+      ${q.type === 'date' ? `<div class="field q-date"><label for="q-date">Date</label><input id="q-date" class="select" type="date" max="${isoD(today())}" value="${esc(S.answers[q.id] || '')}"></div>
+        <div class="quick">${[['Today', 0], ['3 days ago', 3], ['A week ago', 7], ['A month ago', 30]].map(([l, n]) => `<button type="button" class="chip" data-ago="${n}">${l}</button>`).join('')}</div>` : ''}
+      <div class="choices" role="${q.type === 'many' ? 'group' : 'radiogroup'}" aria-labelledby="q-title" ${q.type === 'date' ? 'hidden' : ''}>
       ${q.opts.map(([v, l, h]) => `<button type="button" class="choice ${q.type === 'many' ? 'multi' : ''}" data-v="${v}" role="${q.type === 'many' ? 'checkbox' : 'radio'}" aria-checked="${sel(v)}"><span class="cmark">${I.check}</span><span class="ctext">${esc(l)}${h ? `<small>${esc(h)}</small>` : ''}</span></button>`).join('')}
       </div>
       ${n === 1 ? `<button class="btn btn-quiet skip-q" id="example">Just exploring? Use example answers</button>` : ''}`,
@@ -651,8 +673,14 @@
     $('#back').onclick = () => n === 1 ? go('#/owed') : go('#/report/' + (n - 1));
     $('#skip').onclick = () => { delete S.answers[q.id]; save(); next(); };
     $('#next').onclick = next;
+    const qd = $('#q-date');
+    if (qd) {
+      const setD = v => { if (v) S.answers[q.id] = v; else delete S.answers[q.id]; save(); };
+      qd.onchange = () => setD(qd.value);
+      $$('[data-ago]').forEach(b => b.onclick = () => { qd.value = isoD(addDays(today(), -b.dataset.ago)); setD(qd.value); setTimeout(next, RM ? 0 : 220); });
+    }
     const hb = $('#how'); if (hb) hb.onclick = () => { const open = hb.getAttribute('aria-expanded') !== 'true'; hb.setAttribute('aria-expanded', open); $('#how-panel').hidden = !open; };
-    const ex = $('#example'); if (ex) ex.onclick = () => { S.answers = JSON.parse(JSON.stringify(EXAMPLE)); save(); toast('Example answers loaded'); go('#/gap'); };
+    const ex = $('#example'); if (ex) ex.onclick = () => { S.answers = exampleAnswers(); save(); toast('Example answers loaded'); go('#/gap'); };
     $$('.choice').forEach(b => b.onclick = () => {
       const v = b.dataset.v;
       if (q.type === 'many') {
@@ -664,7 +692,7 @@
         $$('.choice').forEach(c => c.setAttribute('aria-checked', (S.answers[q.id] || []).includes(c.dataset.v)));
         $('#next').disabled = !(S.answers[q.id] || []).length;
       } else {
-        S.answers[q.id] = v; if (q.id === 'outage' && v !== '15') delete S.answers.charged; if (q.id === 'floors') { if (v === '1' && S.answers.pressure === 'ground') delete S.answers.pressure; if (v !== '1' && S.answers.pressure === 'weak') delete S.answers.pressure; } save();
+        S.answers[q.id] = v; if (q.id === 'outage' && v !== '15') delete S.answers.charged; if (q.id === 'complaint' && v === 'not') { delete S.answers.reported; delete S.answers.reply; } if (q.id === 'floors') { if (v === '1' && S.answers.pressure === 'ground') delete S.answers.pressure; if (v !== '1' && S.answers.pressure === 'weak') delete S.answers.pressure; } save();
         $$('.choice').forEach(c => c.setAttribute('aria-checked', c.dataset.v === v));
         setTimeout(next, RM ? 0 : 220);
       }
@@ -820,7 +848,7 @@ Contact: [phone or email]`;
     return out;
   }
   function scriptHTML(issues) {
-    const say = r => ({ hours: /hour/.test(r.you) ? `We only get water ${lc(r.you)} a day.` : `We have ${lc(r.you)}.`, pressure: `The pressure is weak: ${lc(r.you)}.`, quality: `The water has problems: ${lc(r.you)}.`, outage: `Our longest outage was ${lc(r.you)}.`, complaint: `I already reported this. ${r.you}.`, bill: `About our bill: ${lc(r.you)}.`, connect: `I'm waiting for a connection: ${lc(r.you)}.` }[r.id] || `${r.title}: ${r.you}.`);
+    const say = r => ({ hours: /hour/.test(r.you) ? `We only get water ${lc(r.you)} a day.` : `We have ${lc(r.you)}.`, pressure: `The pressure is weak: ${lc(r.you)}.`, quality: `The water has problems: ${lc(r.you)}.`, outage: `Our longest outage was ${lc(r.you)}.`, complaint: `I reported this before${S.answers.reported ? ` on ${longD(parseD(S.answers.reported))}` : ''}${S.answers.reply === 'none' ? ' and got no response' : S.answers.reply === 'partial' ? '. Someone responded, but it is not fixed' : ''}.`, bill: `About our bill: ${lc(r.you)}.`, connect: `I'm waiting for a connection: ${lc(r.you)}.` }[r.id] || `${r.title}: ${r.you}.`);
     const top = issues.slice(0, 3), rule = top.find(r => r.v === 'notmet' && r.note);
     const lines = [`Good day. I'm calling about water service in ${placeLabel()}. My account number is [account number].`, ...(top.length ? [top.map(say).join(' ')] : []), ...(rule ? [rule.note] : []), 'Can I get a reference number, and when will someone act on this?'];
     return `<div class="script">${lines.map(t => `<p class="bubble">${esc(t)}</p>`).join('')}<p class="tip">Write down the date, who you spoke to, and the reference number.</p></div>`;
@@ -867,11 +895,12 @@ Contact: [phone or email]`;
     if (!t) {
       render(`<button class="back" id="back">${I.left}Complaint</button>
         <h2 class="h-title">Track your complaint</h2><p class="h-sub">Tubig counts the days and tells you when to escalate. This stays on your phone.</p>
-        <div class="field"><label for="t-sent">Date you sent or called</label><input id="t-sent" class="select" type="date" value="${isoD(today())}" max="${isoD(today())}"></div>
+        <div class="field"><label for="t-sent">Date you sent or called</label><input id="t-sent" class="select" type="date" value="${isoD(today())}" max="${isoD(today())}">${S.answers.reported && S.answers.reply !== 'fixed' ? `<button type="button" class="chip" id="t-earlier">Use my earlier report: ${esc(shortD(parseD(S.answers.reported)))}</button>` : ''}</div>
         <div class="field"><label for="t-via">How</label><select id="t-via" class="select"><option>Email</option><option>Phone call</option><option>In person</option><option>Facebook message</option></select></div>
         <div class="field"><label for="t-ref">Reference number (if you got one)</label><input id="t-ref" class="select" type="text" autocomplete="off"></div>`,
         `<button class="btn btn-primary" id="t-start">Start tracking</button>`, 'full');
       $('#back').onclick = () => go('#/act');
+      const te = $('#t-earlier'); if (te) te.onclick = () => { $('#t-sent').value = S.answers.reported; };
       $('#t-start').onclick = () => { S.track = { sent: $('#t-sent').value || isoD(today()), via: $('#t-via').value, ref: $('#t-ref').value.trim(), done: {} }; save(); toast('Tracking started'); viewTrack(); };
       return;
     }
