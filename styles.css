@@ -467,3 +467,29 @@ p { margin: 0; }
 .f-top { align-items: center; }
 .status { align-self: center; line-height: 1.2; flex: none; }
 .status .dot, .vh-row .dot { flex: none; align-self: center; width: 10px; height: 10px; min-height: 10px; max-height: 10px; margin-right: 0; }
+
+/* Complain together: a stronger card than the small CTAs, and numbered steps (the order matters) */
+.together-card { display: flex; align-items: center; gap: 14px; margin-top: 16px; padding: 14px 16px; border-radius: var(--r); background: var(--card); border: 2px solid var(--brand); color: var(--ink); text-decoration: none; }
+.together-card:hover { background: var(--brand-tint-2); }
+.together-card > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.together-card b { font-size: 1rem; }
+.together-card > span:nth-child(2) > span { font-size: .9rem; color: var(--ink-2); }
+.together-card .tc-i { width: 44px; height: 44px; flex: none; border-radius: 50%; background: var(--brand); color: var(--card); display: grid; place-items: center; }
+.together-card .tc-i svg { width: 24px; height: 24px; }
+.together-card .chev { width: 20px; height: 20px; flex: none; transform: rotate(-90deg); color: var(--ink-3); }
+.steps { list-style: none; counter-reset: step; margin: 20px 0 0; padding: 0; display: grid; gap: 22px; }
+.step { counter-increment: step; position: relative; padding-left: 44px; min-width: 0; }
+.step::before { content: counter(step); position: absolute; left: 0; top: -2px; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: var(--card); font-weight: 700; display: grid; place-items: center; font-size: .9rem; }
+.step:not(:last-child)::after { content: ""; position: absolute; left: 14px; top: 34px; bottom: -18px; width: 2px; background: var(--line); }
+.step h3 { font-size: 1.05rem; margin: 2px 0 6px; }
+.step > p { color: var(--ink-2); font-size: .95rem; margin: 0 0 10px; }
+.step .ill-strip { margin-top: 4px; }
+.step .letter { min-height: 320px; }
+.hh-form { margin-top: 10px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--card-2); }
+.hh-list { margin-top: 6px; }
+@media print {
+  .print-letter .pl-form { white-space: normal; font: 11pt/1.4 Georgia, serif; }
+  .print-letter .pl-rules { margin: 6px 0 10px; padding-left: 20px; }
+  .print-letter .pl-form td { height: 44px; }
+  .print-letter .pl-sum { margin-top: 12px; line-height: 2; }
+}
