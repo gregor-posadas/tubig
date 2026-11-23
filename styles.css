@@ -471,6 +471,9 @@ p { margin: 0; }
 /* Complain together: a stronger card than the small CTAs, and numbered steps (the order matters) */
 .together-card { display: flex; align-items: center; gap: 14px; margin-top: 16px; padding: 14px 16px; border-radius: var(--r); background: var(--card); border: 2px solid var(--brand); color: var(--ink); text-decoration: none; }
 .together-card:hover { background: var(--brand-tint-2); }
+.together-card + .together-card { margin-top: 10px; }
+.pilot { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: .9rem; color: var(--ink-2); }
+.pilot svg { width: 18px; height: 18px; flex: none; }
 .together-card > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .together-card b { font-size: 1rem; }
 .together-card > span:nth-child(2) > span { font-size: .9rem; color: var(--ink-2); }

@@ -63,6 +63,9 @@
   const load = (f, opt) => fetch('data/' + f).then(r => { if (!r.ok) { if (opt) return null; throw new Error(f); } return r.json(); }).catch(e => { if (opt) return null; throw e; });
   const ready = Promise.all([load('obligations.json'), load('districts.json'), load('complaints.json'), load('mcwd.json'), load('tariffs.json', true)])
     .then(([o, d, c, m, t]) => { D.ob = o; D.districts = d; D.complaints = c; D.mcwd = m; D.tariffs = t || { districts: {} }; D.dIndex = Object.fromEntries(d.map((x, i) => [x.id, i])); });
+  // Prototype scope: only the one barangay whose rules and contacts have been reviewed.
+  const PILOT = { brgy: 'Dau', muni: /Mabalacat/, wd: 'XW-L0061', msg: 'This prototype covers Barangay Dau, Mabalacat City only.' };
+  const inPilot = (m, b) => !!m && PILOT.muni.test(m.n) && b === PILOT.brgy;
   let placesP = null;
   function loadPlaces() {
     if (!placesP) placesP = load('places.json').then(p => {
@@ -72,7 +75,7 @@
         idx.push({ t: norm(m.n), full: norm(m.n + ' ' + m.p), name: m.n, sub: m.p, mi: i, b: null, pop: m.pop || 0, kind: 0 });
         (p.brgys[m.c] || []).forEach(([bn, pop]) => idx.push({ t: norm(bn), full: norm(bn + ' ' + m.n + ' ' + m.p), name: bn, sub: `${m.n}, ${m.p}`, mi: i, b: bn, pop: pop || 0, kind: 1 }));
       });
-      D.index = idx;
+      D.index = idx.filter(e => inPilot(p.munis[e.mi], e.b));
     });
     return placesP;
   }
@@ -516,12 +519,13 @@
     const resume = S.muni && muni() ? (S.track ? `<div class="resume"><div><b>Complaint sent ${esc(daysAgo(S.track.sent))}</b>${esc(placeLabel())}</div><a class="btn btn-sm btn-primary" href="#/track">Track</a></div>`
       : `<div class="resume"><div><b>${esc(placeLabel())}</b>${Object.keys(S.answers).length ? 'Your answers are saved.' : 'Pick up where you left off.'}</div><button class="btn btn-sm btn-primary" id="resume-go">Open</button></div>`) : '';
     render(`
-      <h1 class="h-title">Check your water service</h1>
-      <p class="h-sub">See what your provider owes you, then report what you get, on your own or with your neighbors.</p>
+      <h1 class="h-title">Community-based water monitoring</h1>
+      <p class="h-sub">Measure your water the same way your neighbors do, compare it with what your provider owes you, and report it, on your own or together.</p>
+      <p class="pilot">${I.info}Prototype: open for Barangay Dau, Mabalacat City only.</p>
       <div class="search" role="search">
         <span class="s-icon">${I.search}</span>
         <label for="q" class="sr-only">Barangay or town</label>
-        <input id="q" type="text" placeholder="Your barangay or town" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="q-list" aria-autocomplete="list">
+        <input id="q" type="text" placeholder="Your barangay (try Dau)" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="q-list" aria-autocomplete="list">
         <button class="btn btn-quiet icon-only s-clear" id="q-clear" type="button" aria-label="Clear" hidden>${I.x}</button>
       </div>
       <ul class="results-list" id="q-list" role="listbox" aria-label="Places" hidden></ul>
@@ -529,17 +533,15 @@
         <div class="quick">
           <button class="chip" type="button" id="locate-chip">${I.locate}Use my location</button>
           <button class="chip" type="button" data-ex="Dau|Mabalacat City">Dau, Mabalacat</button>
-          <button class="chip" type="button" data-ex="|City of Olongapo">Olongapo</button>
-          <button class="chip" type="button" data-ex="|Quezon City">Quezon City</button>
         </div>
         ${resume}
-        <a class="together-card" href="#/together"><span class="tc-i">${I.users}</span><span><b>Complain together</b><span>Neighbors measure the same way for a week, then sign one letter. Harder to ignore than one call.</span></span>${I.chev}</a>
+        <a class="together-card" href="#/together"><span class="tc-i">${I.users}</span><span><b>Monitor together</b><span>Neighbors measure the same way for a week, then sign one letter. Harder to ignore than one call.</span></span>${I.chev}</a>
         <p class="section-label">How it works</p>
         <ul class="how">
           <li><span class="hi">${I.pin}</span><div><b>Find your barangay</b><span>We find your provider and its rules.</span></div></li>
-          <li><span class="hi">${I.list}</span><div><b>Answer a few quick questions</b><span>Hours, pressure, quality, outages, bills.</span></div></li>
-          <li><span class="hi">${I.flask}</span><div><b>Document it</b><span>Check it isn't your pipes, then keep a water log. <a href="#/guide">See how</a></span></div></li>
-          <li><span class="hi">${I.mail}</span><div><b>Send a complaint</b><span>A ready letter, message, call script and contacts.</span></div></li>
+          <li><span class="hi">${I.list}</span><div><b>See what you're owed</b><span>Hours, pressure, quality, bills, response times.</span></div></li>
+          <li><span class="hi">${I.flask}</span><div><b>Measure what you get</b><span>A 1-liter bottle, a clock and a water log. <a href="#/guide">See how</a></span></div></li>
+          <li><span class="hi">${I.users}</span><div><b>Report it, alone or together</b><span>A ready message, call script or letter. Or one signed letter for the barangay.</span></div></li>
         </ul>
         <p class="privacy">${I.lock}No sign-up. Your answers stay on your device.</p>
       </div>`, '', 'peek');
@@ -571,7 +573,7 @@
       if (!open) return;
       const toks = norm(q).split(' ');
       list.innerHTML = res.length ? res.map((e, i) => `<li role="option" id="o${i}" data-i="${i}" aria-selected="${i === act}"><span class="ri">${e.b ? I.pin : I.city}</span><span>${hl(e.b ? bLabel(e.name) : e.name, toks)}<small>${esc(e.sub)}</small></span></li>`).join('')
-        : `<li class="none">No match for "${esc(q)}". Try just your town.</li>`;
+        : `<li class="none">${esc(PILOT.msg)} Type "Dau".</li>`;
       if (act >= 0) input.setAttribute('aria-activedescendant', 'o' + act); else input.removeAttribute('aria-activedescendant');
     }
     input.addEventListener('focus', () => { loadPlaces(); if (!isDesk()) setSheet('full'); });
@@ -589,9 +591,10 @@
   async function choose(e) {
     await ready; await loadPlaces();
     const m = D.places.munis[e.mi];
+    if (!inPilot(m, e.b)) { toast(PILOT.msg); return false; }
     if (S.muni !== m.c || S.brgy !== e.b) S.answers = {};
     S.muni = m.c; S.brgy = e.b; S.ptype = detectType(m); S.lat = S.lon = null; S.here = false; save();
-    const next = afterPick || '#/owed'; afterPick = null; go(next);
+    const next = afterPick || '#/owed'; afterPick = null; go(next); return true;
   }
   function locate() {
     if (!navigator.geolocation) { toast("Your browser can't share location"); return; }
@@ -610,7 +613,7 @@
         const fc = await loadBounds(m), inB = fc && fc.features.find(x => x.properties.c && G.inside(lon, lat, x.geometry));
         const list = D.places.brgys[m.c] || [];
         const b = (inB && list.find(([n]) => norm(n) === norm(inB.properties.n))) || list.find(([n]) => names.includes(norm(n)));
-        await choose({ mi, b: b ? b[0] : null });
+        if (!await choose({ mi, b: b ? b[0] : null })) return;
         S.lat = lat; S.lon = lon; S.exact = true; S.here = true; save(); placeOnMap(true);
       } catch { toast("Couldn't match your location. Type your barangay."); }
     }, () => toast('Location not shared. Type your barangay.'), { timeout: 12000 });
@@ -623,7 +626,7 @@
     return `<div class="place"><span class="pi">${I.drop}</span><div><h2>${esc(providerName())}</h2><p>${esc(placeLabel())}</p>
       ${S.ptype === 'wd' && w && w.op ? `<span class="op-chip">Run by ${esc(w.op)}</span>` : ''}
       ${(() => { const sure = detectType(muni()) !== 'lgu', sel = `<label for="ptype" class="sr-only">Provider type</label><select id="ptype">${Object.entries(P).map(([k, v]) => `<option value="${k}" ${k === S.ptype ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select>`;
-        return sure ? `<div class="change-type"><button type="button" class="link-btn" id="wrong-prov">Not your provider?</button><span id="ptype-wrap" hidden>${sel}</span></div>` : `<div class="change-type"><span>Who supplies your water?</span>${sel}</div>`; })()}</div></div>`;
+        return sure ? '' : sure ? `<div class="change-type"><button type="button" class="link-btn" id="wrong-prov">Not your provider?</button><span id="ptype-wrap" hidden>${sel}</span></div>` : `<div class="change-type"><span>Who supplies your water?</span>${sel}</div>`; })()}</div></div>`;
   }
   function viewOwed() {
     const m = muni(), dims = D.ob.dimensions;
@@ -642,17 +645,19 @@
       <p class="section-label">What you're owed</p>
       <div class="facts">${key.map(fact).join('')}</div>
       ${isMCWD() ? `<div class="callout">${I.alert}<p><b>The contract promises continuous water.</b> PrimeWater's agreement with the district lists "continuous water supply to all connected consumers" among its service obligations. Only the district can enforce it: it may keep 6% of PrimeWater's ${peso(D.mcwd.jva.bond).replace(/\.00$/, '')} performance bond after a 60-day notice. The state auditor found it had not, from 2022 to 2024. No pressure minimum was found. <a href="#/district/${esc(wd().id)}">See the contract terms</a></p></div>` : noHrs ? `<div class="callout">${I.alert}<p><b>No minimum hours or pressure.</b> No national rule sets them for ${S.ptype === 'wd' ? 'water districts' : 'your provider type'}. ${jvOp() ? `Your district's contract with ${esc(jvOp().replace(/ \(.*\)$/, ''))} may promise them, and only the district can enforce it. Tubig asks for that report.` : 'Tubig asks your provider for its own target.'}</p></div>` : ''}
-      <a class="together-card" href="#/together"><span class="tc-i">${I.users}</span><span><b>Complain together</b><span>The whole barangay has the problem? Measure for a week with your neighbors and send one letter.</span></span>${I.chev}</a>
-      <a class="track-cta" href="#/guide">${I.list}<span><b>Document the problem</b> Check it isn't your pipes, then keep records</span>${I.chev}</a>
+      <p class="section-label">Monitor what you get</p>
+      <a class="together-card" href="#/together"><span class="tc-i">${I.users}</span><span><b>With your neighbors</b><span>Same 7 days, same method, one signed letter for the whole barangay.</span></span>${I.chev}</a>
+      <a class="together-card solo" href="#/report/1"><span class="tc-i">${I.flask}</span><span><b>On my own</b><span>Answer a few questions and get a message, call script or letter. Your water log can join the barangay's results later.</span></span>${I.chev}</a>
+      <a class="track-cta" href="#/guide">${I.list}<span><b>How to measure</b> Check it isn't your pipes, then keep records</span>${I.chev}</a>
+      <a class="track-cta" href="#/bill">${I.bill}<span><b>Check your bill</b> Compare it with the approved rate</span>${I.chev}</a>
       <p class="section-label">All rules</p>
       <div class="rules">${dims.map(row).join('')}</div>`,
-      `<button class="btn" id="to-bill">${I.bill}Check bill</button><button class="btn btn-primary" id="to-report">Report a problem</button>`, 'half');
+      `<button class="btn" id="to-report">On my own</button><a class="btn btn-primary" href="#/together">${I.users}Together</a>`, 'half');
     $('#back').onclick = () => go('#/');
-    $('#ptype').onchange = e => { S.ptype = e.target.value; save(); viewOwed(); toast('Rules updated'); };
+    const pt = $('#ptype'); if (pt) pt.onchange = e => { S.ptype = e.target.value; save(); viewOwed(); toast('Rules updated'); };
     const wp = $('#wrong-prov'); if (wp) wp.onclick = () => { wp.hidden = true; $('#ptype-wrap').hidden = false; $('#ptype').focus(); };
     $$('[data-open]').forEach(b => b.onclick = () => { const d = $('#r-' + b.dataset.open); d.open = true; if (!isDesk()) setSheet('full'); setTimeout(() => d.scrollIntoView({ block: 'start', behavior: RM ? 'auto' : 'smooth' }), 320); });
     $('#to-report').onclick = () => go('#/report/1');
-    $('#to-bill').onclick = () => go('#/bill');
   }
 
   /* REPORT (one question per card) */
@@ -745,7 +750,7 @@
       <div class="verdict-hero"><p class="vh-big">${esc(head)}</p>
         <div class="vh-row">${['notmet', 'check', 'norule', 'met'].filter(k => c(k)).map(k => `<span><span class="dot ${k}"></span>${c(k)} ${VLAB[k].toLowerCase()}</span>`).join('')}</div></div>
       ${othersHTML(rows)}
-      ${c('notmet') + c('check') ? `<a class="together-card" href="#/together"><span class="tc-i">${I.users}</span><span><b>Your neighbors likely have it too</b><span>Complain together: a week of shared measurements and one signed letter carry more weight than one household.</span></span>${I.chev}</a>` : ''}
+      ${c('notmet') + c('check') ? `<a class="together-card" href="#/together"><span class="tc-i">${I.users}</span><span><b>Your neighbors likely have it too</b><span>Monitor together: a week of shared measurements and one signed letter carry more weight than one household.</span></span>${I.chev}</a>` : ''}
       <a class="track-cta" href="#/guide">${I.list}<span><b>Optional: check it isn't your pipes</b> A 2-minute check before you send</span>${I.chev}</a>
       <ul class="findings">${rows.map(r => `<li class="finding"><div class="f-top"><span class="f-name">${esc(r.title)}</span><span class="status ${r.v}"><span class="dot ${r.v}"></span>${VLAB[r.v]}</span></div>
         <div class="f-compare"><div><p class="k">${r.auto ? 'Public record' : 'You said'}</p><p class="v">${esc(r.you)}</p></div><div><p class="k">The rule</p><p class="v">${esc(r.short || 'No rule')}</p></div></div>
@@ -780,7 +785,7 @@
       <p class="h-sub">To ${esc(providerName())}${issues.length ? `, about ${issues.length} issue${issues.length > 1 ? 's' : ''}` : ''}.</p>
       <div class="seg" role="tablist">${Object.entries(tabs).map(([k, l]) => `<button role="tab" data-tab="${k}" aria-selected="${k === actTab}">${l}</button>`).join('')}</div>
       <div role="tabpanel">${body}</div>
-      <a class="together-card" href="#/together"><span class="tc-i">${I.users}</span><span><b>Complain together</b><span>Neighbors have it too? Measure for a week and send one letter for the whole barangay.</span></span>${I.chev}</a>
+      <a class="together-card" href="#/together"><span class="tc-i">${I.users}</span><span><b>Monitor together</b><span>Neighbors have it too? Measure for a week and send one letter for the whole barangay.</span></span>${I.chev}</a>
       <a class="track-cta" href="#/track">${I.clock}<span><b>Sent it or called?</b> Track when they have to answer</span>${I.chev}</a>
       <a class="track-cta" href="#/log">${I.flask}<span><b>Keep records while you wait</b> A water log helps if you need to escalate</span>${I.chev}</a>`, foot, 'full');
     $('#back').onclick = () => go('#/gap');
@@ -995,10 +1000,10 @@ Please give me a reference number and tell me when someone will act on this. Tha
   }
   function viewGuide() {
     render(`<button class="back" id="back">${I.left}Back</button>
-      <h2 class="h-title">Document the problem</h2>
+      <h2 class="h-title">How to measure</h2>
       <p class="h-sub">Good records get faster action. They also show the problem is the supply, not your pipes.</p>
       <div class="callout info">${I.info}<p><b>Make it hold up.</b> Use the same tap (nearest the meter), at the same times, every day. Write it down right away. Keep the originals and the photos. No special equipment needed: a 1-liter bottle, a clock and a glass.</p></div>
-      <a class="track-cta" href="#/together">${I.users}<span><b>Measuring with neighbors?</b> Complain together uses the same steps for every household</span>${I.chev}</a>
+      <a class="track-cta" href="#/together">${I.users}<span><b>Measuring with neighbors?</b> Monitor together uses the same steps for every household</span>${I.chev}</a>
       <a class="track-cta" href="#/log">${I.list}<span><b>Keep a water log</b> ${S.log && S.log.length ? `${S.log.length} day${S.log.length > 1 ? 's' : ''} logged` : 'Takes a minute a day'}</span>${I.chev}</a>
       <div class="rules guide">${GUIDE.map((g, i) => `<details class="rule" ${i === 0 ? 'open' : ''}><summary><span class="ricon binding">${I[g.icon]}</span><span><b>${esc(g.title)}</b></span>${I.chev}</summary>
         <div class="rbody">${illStrip(g.id)}<ol class="gsteps">${g.steps.map(t => `<li>${esc(t)}</li>`).join('')}</ol><p class="src">Source: ${esc(g.src)}</p></div></details>`).join('')}</div>
@@ -1035,7 +1040,8 @@ Please give me a reference number and tell me when someone will act on this. Tha
         <div class="field"><label for="l-note">Note (optional)</label><input id="l-note" class="select" type="text" placeholder="e.g. photo 7:02 AM, neighbor same"></div>
       </form>
       ${S.log.length ? `<p class="section-label">Entries</p><ul class="log-list">${S.log.slice().sort((a, b) => b.date.localeCompare(a.date)).map(e => `<li><b>${esc(shortD(parseD(e.date)))}</b><span>${e.none ? 'No water' : e.from && e.to ? `${esc(e.from)} to ${esc(e.to)} (${r1(hoursBetween(e.from, e.to))} h)` : 'Hours not noted'}${e.secs ? ` · ${r1(60 / e.secs)} L/min` : ''} · ${esc((COLORS.find(c => c[0] === e.color) || [, ''])[1])}${e.smell ? ' · smell' : ''}${e.note ? ` · ${esc(e.note)}` : ''}</span><button class="btn btn-quiet icon-only" data-del="${esc(e.date)}" aria-label="Delete ${esc(e.date)}">${I.x}</button></li>`).join('')}</ul>
-        <div class="tool-row"><button class="btn btn-sm" id="l-csv">${I.down}Download (CSV)</button></div>` : ''}`,
+        <div class="tool-row"><button class="btn btn-sm" id="l-csv">${I.down}Download (CSV)</button></div>
+        ${muni() ? `<a class="track-cta" href="#/together">${I.users}<span><b>Add this log to the barangay's results</b> Your household counts in the joint letter, without your name</span>${I.chev}</a>` : ''}` : ''}`,
       `<button class="btn btn-primary" id="l-save">Save today's entry</button>`, 'full');
     $('#back').onclick = () => go('#/guide');
     $('#l-none').onchange = e => { $('#l-from').disabled = $('#l-to').disabled = e.target.checked; };
@@ -1065,6 +1071,12 @@ Please give me a reference number and tell me when someone will act on this. Tha
   const grp = () => { const k = S.muni + '|' + (S.brgy || ''); S.groups = S.groups || {}; return (S.groups[k] = S.groups[k] || { start: '', to: 'provider', hh: [] }); };
   const median = a => { const s = a.filter(v => v != null && !isNaN(v)).sort((x, y) => x - y); if (!s.length) return null; const k = s.length >> 1; return s.length % 2 ? s[k] : (s[k - 1] + s[k]) / 2; };
   const r1 = v => Math.round(v * 10) / 10;
+  // One person's own water log, as a household row for the group (how an individual report feeds the shared record).
+  function logHH() {
+    const L = (S.log || []).slice(0).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7); if (!L.length) return null;
+    const hrs = L.map(e => e.none ? 0 : hoursBetween(e.from, e.to)).filter(v => v != null);
+    return { purok: '', days: L.length, hrs: hrs.length ? r1(hrs.reduce((a, b) => a + b, 0)) : null, none: L.filter(e => e.none).length, secs: median(L.map(e => e.secs).filter(v => v > 0)), dirty: L.filter(e => (e.color && e.color !== 'clear') || e.smell).length };
+  }
   function groupStats() {
     const H = grp().hh.filter(h => h.days > 0); if (!H.length) return null;
     const hpd = H.filter(h => h.hrs != null).map(h => Math.min(24, h.hrs / h.days));
@@ -1167,8 +1179,8 @@ Signatures attached.${cc.length ? `\n\nCopy furnished:\n${cc.map(c => '- ' + c).
       : st.days < st.n * 7 ? 'Some households measured for fewer than 7 days. That is fine; the letter counts the days each one measured.' : '';
     const num = (id, label, val, attrs = '') => `<div><label for="${id}">${label}</label><input id="${id}" class="select" type="number" inputmode="decimal" min="0" ${attrs} value="${val ?? ''}"></div>`;
     render(`<button class="back" id="back">${I.left}Back</button>
-      <h2 class="h-title">Complain together</h2>
-      <p class="h-sub">One caller is easy to put off. A letter from many households, with a week of measurements, puts the whole barangay on record.</p>
+      <h2 class="h-title">Monitor together</h2>
+      <p class="h-sub">Community-based monitoring: households measure the same way for the same week, so the numbers hold up. Then one letter puts the whole barangay on record.</p>
       <ol class="steps">
         <li class="step"><h3>Gather your neighbors</h3>
           <p>Aim for 10 or more households from different streets or puroks. Invite everyone, including neighbors whose water is fine, so no one can say the numbers were picked.</p></li>
@@ -1181,6 +1193,7 @@ Signatures attached.${cc.length ? `\n\nCopy furnished:\n${cc.map(c => '- ' + c).
         <li class="step"><h3>Add each household's results</h3>
           <p>Copy the totals from the bottom of each sheet. Give each household a code instead of a name.</p>
           ${g.hh.length ? `<ul class="log-list hh-list">${g.hh.map((h, i) => `<li><b>${esc(h.code)}</b><span>${esc(h.purok || 'No purok')} · ${h.hrs != null ? `${r1(Math.min(24, h.hrs / h.days))} h a day` : 'hours not noted'}${h.none ? ` · ${h.none} day${h.none > 1 ? 's' : ''} no water` : ''}${h.secs ? ` · ${r1(60 / h.secs)} L/min` : ''}${h.dirty ? ` · ${h.dirty} day${h.dirty > 1 ? 's' : ''} not clear` : ''}</span><button class="btn btn-quiet icon-only" data-hdel="${i}" aria-label="Remove ${esc(h.code)}">${I.x}</button></li>`).join('')}</ul>` : ''}
+          ${logHH() && !g.hh.some(h => h.mine) ? `<button class="btn btn-sm" id="t-mine" type="button">${I.list}Add my own water log (${logHH().days} day${logHH().days > 1 ? 's' : ''})</button>` : ''}
           <form id="hh-form" class="log-form hh-form">
             <div class="field row2"><div><label for="h-purok">Purok or street</label><input id="h-purok" class="select" type="text" autocomplete="off"></div>${num('h-days', 'Days measured', 7, 'max="7" step="1"')}</div>
             <div class="field row2">${num('h-hrs', 'Total hours of water', '', 'step="0.5"')}${num('h-none', 'Days with no water', '', 'max="7" step="1"')}</div>
@@ -1198,11 +1211,12 @@ Signatures attached.${cc.length ? `\n\nCopy furnished:\n${cc.map(c => '- ' + c).
           <p class="src-line">Printing adds the results table and a signature sheet. Keep the signed check sheets: they are your evidence. Send copies to the barangay and council too; the letter lists them.</p>
           <a class="track-cta" href="#/track">${I.clock}<span><b>Sent it?</b> Track when they have to reply</span>${I.chev}</a></li>
       </ol>
-      <p class="privacy">${I.lock}Everything here stays on this device. Tubig does not collect names or results.</p>`,
+      <p class="privacy">${I.lock}Everything here stays on this device. Pooling reports across phones is planned, with consent and without names.</p>`,
       `<button class="btn" id="t-copy">${I.copy}Copy</button><button class="btn btn-primary" id="t-print">${I.print}Print to sign</button>`, 'full');
     $('#back').onclick = () => history.length > 1 ? history.back() : go('#/owed');
     $('#t-start').onchange = e => { g.start = e.target.value; save(); viewTogether(); };
     $('#t-sheet').onclick = printSheet;
+    const tm = $('#t-mine'); if (tm) tm.onclick = () => { const h = logHH(); h.code = 'H' + (g.hh.reduce((a, x) => Math.max(a, +x.code.slice(1) || 0), 0) + 1); h.mine = true; g.hh.push(h); save(); toast('Your log added as ' + h.code); viewTogether(); };
     $('#t-to').onchange = e => { g.to = e.target.value; save(); $('#t-text').value = togetherLetter(); };
     const val = id => { const v = parseFloat($(id).value); return isNaN(v) ? null : v; };
     $('#hh-form').onsubmit = e => {
@@ -1309,13 +1323,13 @@ Signatures attached.${cc.length ? `\n\nCopy furnished:\n${cc.map(c => '- ' + c).
     const di = D.dIndex[id], towns = D.places.munis.filter(m => m.wd === di);
     const news = D.complaints.filter(c => norm(c.wd) === norm(d.n)).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     const tf = (D.tariffs.districts || {})[d.id];
-    P.innerHTML = `<p><a href="#/districts">Water districts</a> / ${esc(d.p)}</p><h1>${esc(d.n)}</h1>
+    P.innerHTML = `<h1>${esc(d.n)}</h1>
       <p class="lead">${esc(d.p)}, ${esc(d.r)}.${d.op ? ` Run by a private partner: ${esc(d.op)}.` : ''}</p>
-      ${towns.length ? `<p style="margin-top:16px"><a class="btn btn-primary" href="#/owed" id="chk">Check water in ${esc(towns[0].n)}</a></p>` : ''}
+      ${towns.length ? `<p style="margin-top:16px"><a class="btn btn-primary" href="#/owed" id="chk">Monitor water in Barangay Dau</a></p>` : ''}
       <div class="kv"><div><span>Connections (LWUA)</span><b>${fmtN(d.conn)}</b></div><div><span>COA reports on file</span><b>${esc(d.coa || '—')}</b></div><div><span>News complaints</span><b>${news.length}</b></div><div><span>Minimum bill (10 m³)</span><b>${tf && tf.min ? peso(tf.min) : '—'}</b></div></div>
       ${d.n === 'Mabalacat City Water District' ? mcwdHTML() : ''}
       <h2>Complaints in the news</h2>${news.length ? `<ul class="news">${news.map(c => `<li>${esc(c.sum)}<div class="meta">${esc(c.date)} · ${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.src)}</a>` : esc(c.src)}</div></li>`).join('')}</ul>` : '<p class="lead">None found for 2016 to 2026. That may mean no coverage, not no problems.</p>'}`;
-    const ck = $('#chk'); if (ck) ck.onclick = e => { e.preventDefault(); const m = towns[0]; S.muni = m.c; S.brgy = null; S.ptype = 'wd'; S.answers = {}; S.lat = S.lon = null; save(); go('#/owed'); };
+    const ck = $('#chk'); if (ck) ck.onclick = e => { e.preventDefault(); const m = towns[0]; S.muni = m.c; S.brgy = PILOT.brgy; S.ptype = 'wd'; S.answers = {}; S.lat = S.lon = null; save(); go('#/owed'); };
   }
   function mcwdHTML() {
     const M = D.mcwd, k = M.kpi, max = Math.max(...M.complaints.rows.map(r => r.total));
@@ -1336,7 +1350,8 @@ Signatures attached.${cc.length ? `\n\nCopy furnished:\n${cc.map(c => '- ' + c).
     pageNav('about');
     const Pv = D.ob.providers, keys = Object.keys(Pv), nT = Object.keys(D.tariffs.districts || {}).length;
     P.innerHTML = `<h1>About Tubig</h1>
-      <p class="lead">Tubig (Filipino for "water") is a prototype by Gregor Posadas, PhD student at UC Berkeley, for DevEng 203 (Fall 2026). It helps households see the service their water provider owes them, check their bill, and file a complaint that cites the rule.</p>
+      <p class="lead">Tubig (Filipino for "water") is a prototype by Gregor Posadas, PhD student at UC Berkeley, for DevEng 203 (Fall 2026). It is a community-based monitoring tool: households measure their water service with a shared, low-cost method, compare it with what their provider owes them, and report it, on their own or together.</p>
+      <div class="callout info">${I.info}<p><b>Prototype.</b> Open for Barangay Dau, Mabalacat City, Pampanga only. Other places are locked until their rules and contacts are reviewed.</p></div>
       <h2>Built on public records</h2>
       <div class="stats"><div class="stat"><b>240</b><span>service obligations</span></div><div class="stat"><b>554</b><span>water districts</span></div><div class="stat"><b>~4,500</b><span>state audit reports</span></div><div class="stat"><b>${fmtN(D.complaints.length)}</b><span>news-reported complaints</span></div><div class="stat"><b>42,010</b><span>barangays</span></div></div>
       <div class="cards">
@@ -1349,7 +1364,7 @@ Signatures attached.${cc.length ? `\n\nCopy furnished:\n${cc.map(c => '- ' + c).
       <div class="table-scroll" style="margin-top:12px"><table class="table matrix"><thead><tr><th>Service</th>${keys.map(k => `<th>${esc(Pv[k].name)}</th>`).join('')}</tr></thead><tbody>${D.ob.dimensions.map(d => `<tr style="cursor:default"><th>${esc(d.title)}</th>${keys.map(k => { const r = d.rules._all || d.rules[k]; return `<td>${r.status === 'none' ? '<span class="count">No rule found</span>' : esc(r.text)}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>
       <h2>Questions</h2><div class="faq">
         <details><summary>Can't I just call my water provider?</summary><p>Yes, and that is the first step Tubig points you to. Every water district has a complaints desk and a Citizen's Charter, and the 8888 hotline and ARTA are there if nothing happens. What Tubig adds is the rule your provider has to meet, the right office to contact first and next, and a written complaint with a reference number, so there is a record if you need to escalate.</p></details>
-        <details><summary>Will Tubig count reports from my barangay?</summary><p>Not yet. This prototype keeps everything on your device. A pilot, after ethics review, would let residents add an anonymous report (barangay, problem, date, no names), so councils and barangay halls can see how many households report the same problem. Until then, use Complain together to collect signatures on paper.</p></details>
+        <details><summary>Will Tubig count reports from my barangay?</summary><p>Not yet. This prototype keeps everything on your device. A pilot, after ethics review, would let residents add an anonymous report (barangay, problem, date, no names), so councils and barangay halls can see how many households report the same problem. Until then, use Monitor together to combine households' results on one device and collect signatures on paper.</p></details>
         <details><summary>Is my information stored?</summary><p>No accounts, nothing sent to us. Answers stay in your browser. Barangay outlines load from this site. If an outline is missing, the place you pick goes to OpenStreetMap to find it on the map.</p></details>
         <details><summary>Why is there no minimum for hours or pressure?</summary><p>No national rule requires water districts to supply water 24 hours a day, at a set pressure, or in a set amount per person. Utilities regulated by NWRB and those run by local governments have minimums (18 hours a day and 8 psi under NWRB Res. 14-0921); water districts do not. LWUA and the Commission on Audit track hours of supply as a performance indicator, but each district sets its own target. Districts must meet national drinking-water quality standards and act on complaints within their Citizen's Charter times and 72 hours for 8888 complaints.</p></details>
         <details><summary>What if a private company runs my water district?</summary><p>Joint venture contracts reviewed so far promise 24-hour supply within 2 to 5 years and 10 psi within 4 to 5 years. These are contract terms, not regulations: only the water district's board can enforce them, by forfeiting the operator's performance bond or ending the contract. The contracts are usually not public, so ask your district for its annual joint venture compliance report. Your complaint goes to the water district, which answers for its partner.</p></details>
@@ -1375,15 +1390,17 @@ Signatures attached.${cc.length ? `\n\nCopy furnished:\n${cc.map(c => '- ' + c).
     const [v = '', arg] = location.hash.replace(/^#\/?/, '').split('/');
     const pages = ['districts', 'district', 'about'];
     $('#pages').hidden = !pages.includes(v); $('#app').hidden = pages.includes(v);
+    if (v === 'districts' || (v === 'district' && arg !== PILOT.wd)) { go('#/district/' + PILOT.wd); return; }
     if (pages.includes(v)) {
       document.title = { districts: 'Water districts · Tubig', district: 'Water district · Tubig', about: 'About · Tubig' }[v];
       await ({ districts: pageDistricts, district: () => pageDistrict(arg), about: pageAbout })[v](); $('#pages').scrollTop = 0; return;
     }
     setTimeout(() => MAP.resize(), 30);
-    document.title = 'Tubig · Check your water service';
+    document.title = 'Tubig · Community-based water monitoring';
     if (v === 'petition') { go('#/together'); return; }
     if (['owed', 'report', 'gap', 'act', 'bill', 'track', 'guide', 'log', 'together'].includes(v)) {
       await loadPlaces();
+      if (muni() && !inPilot(muni(), S.brgy)) { S.muni = S.brgy = null; S.answers = {}; save(); }
       if (!muni() && !['guide', 'log'].includes(v)) { afterPick = v === 'together' ? '#/together' : null; go('#/'); if (afterPick) toast('Find your barangay first'); return; }
       ({ owed: viewOwed, report: () => viewReport(+arg || 1), gap: viewGap, act: viewAct, bill: viewBill, track: viewTrack, guide: viewGuide, log: viewLog, together: viewTogether })[v]();
       if (muni()) placeOnMap();
