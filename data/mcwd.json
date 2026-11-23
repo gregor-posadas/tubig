@@ -16,8 +16,12 @@
   "serviceRequestCite": "MCWD Citizen's Charter 2020, p. 30",
   "hotlineOwner": "PWMC/MCWD",
   "operatorName": "PrimeWater Mabalacat",
-  "operatorNote": "The district's Citizen's Charter lists these numbers under \"PWMC/MCWD\": they reach PrimeWater Mabalacat, the operator (Primewater Infrastructure Corp. became Hiraya Water Corp. in 2025). Its Facebook page is PrimeWaterMabalacat.",
-  "foi": "https://www.foi.gov.ph/en/agencies/mabwd/"
+  "operatorNote": "The district's Citizen's Charter lists these numbers under \"PWMC/MCWD\": they reach PrimeWater Mabalacat, the operator (Primewater Infrastructure Corp. became Hiraya Water Corp. in 2025). Its Facebook page, \"PrimeWater Mabalacat (Hiraya Water Mabalacat)\", lists the same 0916 number and the email mabalacat.primewater@gmail.com (checked 22 Nov 2026).",
+  "foi": "https://www.foi.gov.ph/en/agencies/mabwd/",
+  "messenger": "https://m.me/HirayaMabalacat",
+  "facebook": "https://www.facebook.com/HirayaMabalacat",
+  "operatorEmail": "mabalacat.primewater@gmail.com",
+  "districtFacebook": "https://www.facebook.com/mabalacatcity.wd"
  },
  "kpi": {
   "note": "Targets and actuals the operator owes the district under the joint venture (JVA Sec. 5.1.5), as reported by COA. All six are district-wide totals; none says which barangays received how many hours, at what pressure.",

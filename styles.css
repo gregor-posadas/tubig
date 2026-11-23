@@ -493,3 +493,6 @@ p { margin: 0; }
   .print-letter .pl-form td { height: 44px; }
   .print-letter .pl-sum { margin-top: 12px; line-height: 2; }
 }
+
+.sub-h { font-size: 1rem; margin: 18px 0 4px; }
+.chat-msg { min-height: 220px; }

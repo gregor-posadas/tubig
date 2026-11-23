@@ -539,7 +539,7 @@
           <li><span class="hi">${I.pin}</span><div><b>Find your barangay</b><span>We find your provider and its rules.</span></div></li>
           <li><span class="hi">${I.list}</span><div><b>Answer a few quick questions</b><span>Hours, pressure, quality, outages, bills.</span></div></li>
           <li><span class="hi">${I.flask}</span><div><b>Document it</b><span>Check it isn't your pipes, then keep a water log. <a href="#/guide">See how</a></span></div></li>
-          <li><span class="hi">${I.mail}</span><div><b>Send a complaint</b><span>A ready letter, script and contacts.</span></div></li>
+          <li><span class="hi">${I.mail}</span><div><b>Send a complaint</b><span>A ready letter, message, call script and contacts.</span></div></li>
         </ul>
         <p class="privacy">${I.lock}No sign-up. Your answers stay on your device.</p>
       </div>`, '', 'peek');
@@ -765,7 +765,7 @@
     const subject = 'Water service complaint, ' + placeLabel();
     const sig = JSON.stringify(S.answers) + S.ptype;
     const letter = S.letter && S.letterFor === sig ? S.letter : buildLetter(issues);
-    const tabs = { letter: 'Letter', contacts: 'Who to contact', script: 'Phone script' };
+    const tabs = { letter: 'Letter', contacts: 'Who to contact', script: 'Message or call' };
     const body = {
       letter: `<label for="letter" class="sr-only">Complaint letter</label><textarea id="letter" class="letter" spellcheck="true">${esc(letter)}</textarea>
         <p class="src-line">Fill in the parts in [brackets]. Edit anything you like.</p>
@@ -785,6 +785,7 @@
       <a class="track-cta" href="#/log">${I.flask}<span><b>Keep records while you wait</b> A water log helps if you need to escalate</span>${I.chev}</a>`, foot, 'full');
     $('#back').onclick = () => go('#/gap');
     $$('[data-tab]').forEach(b => b.onclick = () => { actTab = b.dataset.tab; viewAct(); });
+    const cc = $('#chat-copy'); if (cc) cc.onclick = async () => { try { await navigator.clipboard.writeText($('#chat-msg').value); toast('Message copied'); } catch { $('#chat-msg').select(); } };
     const ta = $('#letter');
     if (ta) {
       const sync = () => { S.letter = ta.value; S.letterFor = sig; $('#mail').href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(ta.value)}`; };
@@ -833,8 +834,8 @@ Contact: [phone or email]`;
     const tel = h => ({ href: 'tel:' + h.replace(/ \(.*\)/, '').replace(/[^0-9+]/g, ''), label: h.replace(/ \(.*\)/, ''), icon: 'phone' });
     if (isMCWD()) {
       const c = D.mcwd.contacts;
-      out.push({ name: `${c.operatorName} (operator)`, when: 'No water, leaks, low pressure', how: 'Call the 24/7 hotline for repairs. Ask for a reference number.', note: c.operatorNote,
-        links: c.hotlines.slice(0, 2).map(tel) });
+      out.push({ name: `${c.operatorName} (operator)`, when: 'No water, leaks, low pressure, dirty water', how: 'Message its Facebook page or call the 24/7 hotline. Ask for a reference number. If you message, take a screenshot of the chat: it shows the date and their reply.', note: c.operatorNote,
+        links: [{ href: c.messenger, label: 'Message on Facebook', icon: 'chat' }, ...c.hotlines.slice(0, 2).map(tel), { href: 'mailto:' + c.operatorEmail, label: 'Email', icon: 'mail' }] });
       out.push({ name: 'Mabalacat City Water District', when: 'Written complaint', how: `Email the letter or bring it to ${c.address}. The district answers for its operator.`, note: c.charterNote, email: c.email,
         links: [{ href: 'mailto:' + c.email, label: 'Email', icon: 'mail' }, tel(c.landline)] });
     } else if (t === 'wd' && w) out.push({ name: w.n, when: 'Start here', how: "Use the complaints desk in the district's Citizen's Charter (website or office). Ask for a reference number." });
@@ -855,7 +856,21 @@ Contact: [phone or email]`;
     const say = r => ({ hours: /hour/.test(r.you) ? `We only get water ${lc(r.you)} a day.` : `We have ${lc(r.you)}.`, pressure: `The pressure is weak: ${lc(r.you)}.`, quality: `The water has problems: ${lc(r.you)}.`, outage: `Our longest outage was ${lc(r.you)}.`, complaint: `I reported this before${S.answers.reported ? ` on ${longD(parseD(S.answers.reported))}` : ''}${S.answers.reply === 'none' ? ' and got no response' : S.answers.reply === 'partial' ? '. Someone responded, but it is not fixed' : ''}.`, bill: `About our bill: ${lc(r.you)}.`, connect: `I'm waiting for a connection: ${lc(r.you)}.` }[r.id] || `${r.title}: ${r.you}.`);
     const top = issues.slice(0, 3), rule = top.find(r => r.v === 'notmet' && r.note);
     const lines = [`Good day. I'm calling about water service in ${placeLabel()}. My account number is [account number].`, ...(top.length ? [top.map(say).join(' ')] : []), ...(rule ? [rule.note] : []), 'Can I get a reference number, and when will someone act on this?'];
-    return `<div class="script">${lines.map(t => `<p class="bubble">${esc(t)}</p>`).join('')}<p class="tip">Write down the date, who you spoke to, and the reference number.</p></div>`;
+    return `<h3 class="sub-h">If you message them</h3><p class="src-line">Many people message the provider's Facebook page. Paste this, then take a screenshot of the chat.</p>
+      <label for="chat-msg" class="sr-only">Message to send</label><textarea id="chat-msg" class="letter chat-msg" spellcheck="true">${esc(chatMessage(issues))}</textarea>
+      <div class="tool-row"><button class="btn btn-sm" id="chat-copy">${I.copy}Copy message</button>${isMCWD() ? `<a class="btn btn-sm" href="${esc(D.mcwd.contacts.messenger)}" target="_blank" rel="noopener">${I.chat}Open Messenger</a>` : ''}</div>
+      <h3 class="sub-h">If you call</h3><div class="script">${lines.map(t => `<p class="bubble">${esc(t)}</p>`).join('')}<p class="tip">Write down the date, who you spoke to, and the reference number.</p></div>`;
+  }
+  // A short message for Messenger or SMS: the problems, the rule if one is broken, and a request for a reference number.
+  function chatMessage(issues) {
+    const top = issues.slice(0, 3), rule = top.find(r => r.v === 'notmet' && r.note);
+    const probs = top.map(r => `- ${r.title}: ${r.you}`).join('\n');
+    return `Good day. I would like to report a water problem.
+Name: [your name]
+Account number: [account number]
+Address: [house number and street], ${placeLabel()}
+${probs ? '\n' + probs + '\n' : ''}${rule ? '\n' + rule.note.split(/(?<=\.)\s(?=[A-Z])/)[0] + '\n' : ''}
+Please give me a reference number and tell me when someone will act on this. Thank you.`;
   }
 
 
@@ -870,7 +885,7 @@ Contact: [phone or email]`;
   function trackSteps(t) {
     const sent = parseD(t.sent), steps = [];
     const p = S.ptype;
-    steps.push({ id: 'ref', title: 'Get a reference number', rule: 'Ask for it when you send or call. It proves when you complained.', due: sent, done: !!t.ref });
+    steps.push({ id: 'ref', title: 'Get a reference number', rule: 'Ask for it when you send, message or call. It proves when you complained. If you messaged on Facebook, keep a screenshot of the chat.', due: sent, done: !!t.ref });
     steps.push({ id: 'log', title: 'Keep a water log while you wait', rule: 'Note hours, flow and color each day. If you escalate, the log is your evidence.', due: sent, noDue: true });
     if (p === 'wd' || p === 'lgu') {
       const mc = isMCWD();
