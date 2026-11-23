@@ -1,159 +1,181 @@
 {
-  "district": "Mabalacat City Water District",
-  "operator": "PrimeWater Infrastructure Corp. under a 25-year joint venture signed 20 Feb 2019 (renamed Hiraya Water after a change of ownership in Dec 2025)",
-  "contacts": {
-    "email": "mcwd@mabalacatcitywd.gov.ph",
-    "landline": "(045) 331-7404",
-    "hotlines": [
-      "0916-646-1658 (Globe, 24/7)",
-      "0939-104-7640 (Smart, 24/7)",
-      "0943-440-5542 (Sun, weekdays 8 AM to 5 PM)"
-    ],
-    "address": "0255 MacArthur Highway, Mabiga, Mabalacat City, Pampanga",
-    "charter": "https://mabalacatcitywd.gov.ph/wp-content/uploads/2025/10/01MCWD-Citizens-Charter-2020-1-Edition.pdf",
-    "charterNote": "From the district's Citizen's Charter (2020 edition). The district's website lists only its email and office; call to confirm the numbers.",
-    "serviceRequest": "Service requests (leaks, line damage): within 24 hours. Maintenance requests: 2 to 3 working days.",
-    "serviceRequestCite": "MCWD Citizen's Charter 2020, p. 30",
-    "hotlineOwner": "PWMC/MCWD",
-    "operatorName": "PrimeWater Mabalacat",
-    "operatorNote": "The district's Citizen's Charter lists these numbers under \"PWMC/MCWD\": they reach PrimeWater Mabalacat, the operator (Primewater Infrastructure Corp. became Hiraya Water Corp. in 2025). Its Facebook page is PrimeWaterMabalacat.",
-    "foi": "https://www.foi.gov.ph/en/agencies/mabwd/"
-  },
-  "kpi": {
-    "note": "Targets and actuals the operator owes the district under the joint venture (JVA Sec. 5.1.5), as reported by COA. All six are district-wide totals; none says which barangays received how many hours, at what pressure.",
-    "years": [
-      2022,
-      2023,
-      2024
-    ],
-    "rows": [
-      {
-        "k": "Barangays served",
-        "t": [
-          23,
-          24,
-          24
-        ],
-        "a": [
-          22,
-          22,
-          22
-        ],
-        "fmt": "n",
-        "hi": true
-      },
-      {
-        "k": "Service connections",
-        "t": [
-          51940,
-          52980,
-          52980
-        ],
-        "a": [
-          52666,
-          53844,
-          55308
-        ],
-        "fmt": "n",
-        "hi": true
-      },
-      {
-        "k": "Coverage",
-        "t": [
-          0.89,
-          0.907,
-          0.907
-        ],
-        "a": [
-          0.8148,
-          0.9072,
-          0.9296
-        ],
-        "fmt": "pct",
-        "hi": true
-      },
-      {
-        "k": "Non-revenue water",
-        "t": [
-          0.2,
-          0.2,
-          0.2
-        ],
-        "a": [
-          0.1428,
-          0.1712,
-          0.2067
-        ],
-        "fmt": "pct",
-        "hi": false
-      },
-      {
-        "k": "Water-quality compliance (PNSDW)",
-        "t": [
-          1,
-          1,
-          1
-        ],
-        "a": [
-          1,
-          1,
-          1
-        ],
-        "fmt": "pct",
-        "hi": true
-      },
-      {
-        "k": "Supply capacity (m³/day)",
-        "t": [
-          48437,
-          48913,
-          48913
-        ],
-        "a": [
-          48772,
-          51472,
-          51472
-        ],
-        "fmt": "n",
-        "hi": true
-      }
-    ],
-    "cite": "COA 2022 report Obs. 7, Table 6; COA 2024 Annual Audit Report Obs. 6, Table 6"
-  },
-  "complaints": {
-    "rows": [
-      {
-        "y": 2022,
-        "total": 739,
-        "nowater": 0.19,
-        "pressure": 0.38,
-        "quality": 0.43
-      },
-      {
-        "y": 2023,
-        "total": 1234,
-        "nowater": 0.28,
-        "pressure": 0.43,
-        "quality": 0.29
-      },
-      {
-        "y": 2024,
-        "total": 1490,
-        "nowater": 0.4047,
-        "pressure": 0.4329,
-        "quality": 0.1624
-      }
-    ],
-    "note": "Valid complaints logged by the operator, as reported by COA. The 2023 total is as restated in the 2024 report (the 2023 report said 1,125); the 2022 total is reported inconsistently across reports.",
-    "cite": "COA 2022 Obs. 8.5; COA 2023 Obs. 8.5; COA 2024 Annual Audit Report Obs. 9.6, p. 53"
-  },
-  "findings": [
-    "COA found the district compliant with its Water Safety Plan in 2024, and in the same observation reported 1,490 complaints, up 20.75% from 2023.",
-    "The operator served 22 barangays each year from 2022 to 2024, short of its target of 23 (2022) and 24 (2023, 2024). COA does not name the barangays left out.",
-    "The rewards and penalties framework the joint venture calls for (Sec. 8.5.4) was still not finalized in 2024, five years in.",
-    "The 6% performance bond was not forfeited in any year, though 1 to 2 of 6 targets were missed each year from 2022 to 2024.",
-    "In 2024, 135 of 170 operator capital projects (₱125.0M) had no supporting documents.",
-    "10 of 15 prior-year COA recommendations had not been implemented as of 2024."
+ "district": "Mabalacat City Water District",
+ "operator": "PrimeWater Infrastructure Corp. under a 25-year joint venture signed 20 Feb 2019 (renamed Hiraya Water after a change of ownership in Dec 2025)",
+ "contacts": {
+  "email": "mcwd@mabalacatcitywd.gov.ph",
+  "landline": "(045) 331-7404",
+  "hotlines": [
+   "0916-646-1658 (Globe, 24/7)",
+   "0939-104-7640 (Smart, 24/7)",
+   "0943-440-5542 (Sun, weekdays 8 AM to 5 PM)"
   ],
-  "findingsCite": "Author's extract of COA Annual Audit Reports on MCWD, CY 2019-2024 (MCWD_COA_Record_2014-2024)"
+  "address": "0255 MacArthur Highway, Mabiga, Mabalacat City, Pampanga",
+  "charter": "https://mabalacatcitywd.gov.ph/wp-content/uploads/2025/10/01MCWD-Citizens-Charter-2020-1-Edition.pdf",
+  "charterNote": "From the district's Citizen's Charter (2020 edition). The district's website lists only its email and office; call to confirm the numbers.",
+  "serviceRequest": "Service requests (leaks, line damage): within 24 hours. Maintenance requests: 2 to 3 working days.",
+  "serviceRequestCite": "MCWD Citizen's Charter 2020, p. 30",
+  "hotlineOwner": "PWMC/MCWD",
+  "operatorName": "PrimeWater Mabalacat",
+  "operatorNote": "The district's Citizen's Charter lists these numbers under \"PWMC/MCWD\": they reach PrimeWater Mabalacat, the operator (Primewater Infrastructure Corp. became Hiraya Water Corp. in 2025). Its Facebook page is PrimeWaterMabalacat.",
+  "foi": "https://www.foi.gov.ph/en/agencies/mabwd/"
+ },
+ "kpi": {
+  "note": "Targets and actuals the operator owes the district under the joint venture (JVA Sec. 5.1.5), as reported by COA. All six are district-wide totals; none says which barangays received how many hours, at what pressure.",
+  "years": [
+   2022,
+   2023,
+   2024
+  ],
+  "rows": [
+   {
+    "k": "Barangays served",
+    "t": [
+     23,
+     24,
+     24
+    ],
+    "a": [
+     22,
+     22,
+     22
+    ],
+    "fmt": "n",
+    "hi": true
+   },
+   {
+    "k": "Service connections",
+    "t": [
+     51940,
+     52980,
+     52980
+    ],
+    "a": [
+     52666,
+     53844,
+     55308
+    ],
+    "fmt": "n",
+    "hi": true
+   },
+   {
+    "k": "Coverage",
+    "t": [
+     0.89,
+     0.907,
+     0.907
+    ],
+    "a": [
+     0.8148,
+     0.9072,
+     0.9296
+    ],
+    "fmt": "pct",
+    "hi": true
+   },
+   {
+    "k": "Non-revenue water",
+    "t": [
+     0.2,
+     0.2,
+     0.2
+    ],
+    "a": [
+     0.1428,
+     0.1712,
+     0.2067
+    ],
+    "fmt": "pct",
+    "hi": false
+   },
+   {
+    "k": "Water-quality compliance (PNSDW)",
+    "t": [
+     1,
+     1,
+     1
+    ],
+    "a": [
+     1,
+     1,
+     1
+    ],
+    "fmt": "pct",
+    "hi": true
+   },
+   {
+    "k": "Supply capacity (m³/day)",
+    "t": [
+     48437,
+     48913,
+     48913
+    ],
+    "a": [
+     48772,
+     51472,
+     51472
+    ],
+    "fmt": "n",
+    "hi": true
+   }
+  ],
+  "cite": "COA 2022 report Obs. 7, Table 6; COA 2024 Annual Audit Report Obs. 6, Table 6"
+ },
+ "complaints": {
+  "rows": [
+   {
+    "y": 2022,
+    "total": 739,
+    "nowater": 0.19,
+    "pressure": 0.38,
+    "quality": 0.43
+   },
+   {
+    "y": 2023,
+    "total": 1234,
+    "nowater": 0.28,
+    "pressure": 0.43,
+    "quality": 0.29
+   },
+   {
+    "y": 2024,
+    "total": 1490,
+    "nowater": 0.4047,
+    "pressure": 0.4329,
+    "quality": 0.1624
+   }
+  ],
+  "note": "Valid complaints logged by the operator, as reported by COA. The 2023 total is as restated in the 2024 report (the 2023 report said 1,125); the 2022 total is reported inconsistently across reports.",
+  "cite": "COA 2022 Obs. 8.5; COA 2023 Obs. 8.5; COA 2024 Annual Audit Report Obs. 9.6, p. 53"
+ },
+ "findings": [
+  "COA found the district compliant with its Water Safety Plan in 2024, and in the same observation reported 1,490 complaints, up 20.75% from 2023.",
+  "The operator served 22 barangays each year from 2022 to 2024, short of its target of 23 (2022) and 24 (2023, 2024). COA does not name the barangays left out.",
+  "The rewards and penalties framework the joint venture calls for (Sec. 8.5.4) was still not finalized in 2024, five years in.",
+  "The 6% performance bond was not forfeited in any year, though 1 to 2 of 6 targets were missed each year from 2022 to 2024.",
+  "In 2024, 135 of 170 operator capital projects (₱125.0M) had no supporting documents.",
+  "10 of 15 prior-year COA recommendations had not been implemented as of 2024."
+ ],
+ "findingsCite": "Author's extract of COA Annual Audit Reports on MCWD, CY 2019-2024 (MCWD_COA_Record_2014-2024)",
+ "jva": {
+  "signed": "2019-02-20",
+  "effective": "2019-05-16",
+  "partner": "Primewater Infrastructure Corp.",
+  "obligations": [
+   "Service coverage",
+   "Continuous water supply to all connected consumers",
+   "Drinking water standards",
+   "Customer service",
+   "Key performance indicators and business efficiency measures",
+   "Septage management",
+   "Watershed management and protection"
+  ],
+  "continuous": "Provision of Continuous Water Supply to all connected Consumers",
+  "penalty": "If PrimeWater misses a service obligation, the district may forfeit 6% of its performance bond (Sec. 5.1.9), after a written notice and 60 days to cure (Sec. 5.3.3).",
+  "bond": 29517159,
+  "bondPeriod": "Feb 2024 to Feb 2025",
+  "kpiGap": "None of the six targets the district checks measures hours of supply or pressure, though continuous supply is one of the seven service obligations.",
+  "cite": "COA Annual Audit Reports on MCWD, CY2022 Obs. 7 and CY2024 Obs. 6, quoting JVA Sec. 5",
+  "notPublic": "The full agreement is not public. In August 2025 the mayor asked PrimeWater for a copy for the city council; the request had not been met (SunStar Pampanga, 14 Aug 2025).",
+  "notPublicUrl": "https://www.sunstar.com.ph/pampanga/local-news/execs-push-for-termination-of-mcwd-primewater-jva"
+ }
 }

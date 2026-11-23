@@ -373,7 +373,8 @@
   function shortRule(id) {
     const t = S.ptype, r = ruleFor(dim(id)), tf = tariffFor();
     switch (id) {
-      case 'hours': return r.min ? `${r.min === 24 ? '24' : r.min + '+'} hours a day` : 'No minimum';
+      case 'hours': if (isMCWD()) return 'Continuous (contract)';
+        return r.min ? `${r.min === 24 ? '24' : r.min + '+'} hours a day` : 'No minimum';
       case 'pressure': return r.psi ? `${r.psi}+ psi at the tap` : 'No minimum';
       case 'quality': return 'Safe to drink';
       case 'outage': return t === 'wd' ? 'No charge after 15 days out' : t === 'mwss' ? 'Fixed within 6 hours' : 'No rule';
@@ -427,7 +428,8 @@
     const push = (id, you, v, note, ask, auto) => { const d = dim(id), r = ruleFor(d); out.push({ id, title: d.title, owed: r.text, short: shortRule(id), r, you, v, note, ask, auto }); };
     if (a.hours != null) {
       const h = +a.hours, r = ruleFor(dim('hours')), you = LABEL.hours[a.hours];
-      if (r.min == null) push('hours', you, h >= 24 ? 'met' : 'norule', h >= 24 ? '' : `No minimum is set for your provider. ${tgt('hours')}, but it is only a target.`, h >= 24 ? '' : "Tell me the district's own target for hours of supply in my barangay, and when it will be met.");
+      if (isMCWD()) push('hours', you, h >= 24 ? 'met' : 'notmet', h >= 24 ? '' : "PrimeWater's contract with the district requires continuous water supply to all connected consumers (joint venture agreement, Sec. 5, as quoted by the state auditor). Only the district can enforce it.", h >= 24 ? '' : 'Issue PrimeWater a written notice to cure its failure to supply water continuously to my barangay, as Sections 5.1.9 and 5.3.3 of the joint venture agreement allow, and tell me the result.');
+      else if (r.min == null) push('hours', you, h >= 24 ? 'met' : 'norule', h >= 24 ? '' : `No minimum is set for your provider. ${tgt('hours')}, but it is only a target.`, h >= 24 ? '' : "Tell me the district's own target for hours of supply in my barangay, and when it will be met.");
       else if (h >= r.min) push('hours', you, 'met');
       else push('hours', you, 'notmet', `The rule is at least ${r.min} hours a day.`, `Restore at least ${r.min} hours of supply a day, as required.`);
     }
@@ -630,6 +632,7 @@
     const row = d => { const r = ruleFor(d); return `<details class="rule" id="r-${d.id}"><summary><span class="ricon ${r.status}">${ST_ICON[r.status]}</span><span><b>${esc(d.title)}${r.status === 'unconfirmed' ? '<span class="tag-mini">text not yet confirmed</span>' : ''}</b><span class="rsum">${esc(shortRule(d.id) || (r.status === 'none' ? 'No rule' : 'Required'))}</span></span>${I.chev}</summary>
       <div class="rbody"><p>${esc(r.text)}</p>${r.status === 'none' && d.target ? `<p>For comparison: ${esc(d.target.text)} (a target, not a requirement)</p>` : ''}
       ${d.id === 'bill' && S.ptype === 'wd' ? `<p><a href="#/bill">Check your bill against the tariff</a></p>` : ''}
+      ${d.id === 'hours' && isMCWD() ? `<p>Mabalacat's contract with PrimeWater: "${esc(D.mcwd.jva.continuous)}" (Sec. 5). ${esc(D.mcwd.jva.penalty)} ${esc(D.mcwd.jva.notPublic)}</p><p class="src">Source: ${esc(D.mcwd.jva.cite)}</p>` : ''}
       ${d.id === 'complaint' && isMCWD() ? `<p>Mabalacat's Citizen's Charter: ${esc(D.mcwd.contacts.serviceRequest)} <a href="${esc(D.mcwd.contacts.charter)}" target="_blank" rel="noopener">Read the charter (PDF, p. 30)</a></p>` : ''}
       ${r.cite ? `<p class="src">Source: ${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.cite)}</a>` : esc(r.cite)}</p>` : ''}</div></details>`; };
     const noHrs = ruleFor(dim('hours')).status === 'none';
@@ -638,7 +641,7 @@
       ${S.ptype === 'lgu' && detectType(m) === 'lgu' ? `<div class="callout">${I.info}<p>No water district found for ${esc(m.n)}. Pick the provider type that serves you.</p></div>` : ''}
       <p class="section-label">What you're owed</p>
       <div class="facts">${key.map(fact).join('')}</div>
-      ${noHrs ? `<div class="callout">${I.alert}<p><b>No minimum hours or pressure.</b> No national rule sets them for ${S.ptype === 'wd' ? 'water districts' : 'your provider type'}. ${jvOp() ? `Your district's contract with ${esc(jvOp().replace(/ \(.*\)$/, ''))} may promise them, and only the district can enforce it. Tubig asks for that report.` : 'Tubig asks your provider for its own target.'}</p></div>` : ''}
+      ${isMCWD() ? `<div class="callout">${I.alert}<p><b>The contract promises continuous water.</b> PrimeWater's agreement with the district lists "continuous water supply to all connected consumers" among its service obligations. Only the district can enforce it: it may keep 6% of PrimeWater's ${peso(D.mcwd.jva.bond).replace(/\.00$/, '')} performance bond after a 60-day notice. The state auditor found it had not, from 2022 to 2024. No pressure minimum was found. <a href="#/district/${esc(wd().id)}">See the contract terms</a></p></div>` : noHrs ? `<div class="callout">${I.alert}<p><b>No minimum hours or pressure.</b> No national rule sets them for ${S.ptype === 'wd' ? 'water districts' : 'your provider type'}. ${jvOp() ? `Your district's contract with ${esc(jvOp().replace(/ \(.*\)$/, ''))} may promise them, and only the district can enforce it. Tubig asks for that report.` : 'Tubig asks your provider for its own target.'}</p></div>` : ''}
       <a class="together-card" href="#/together"><span class="tc-i">${I.users}</span><span><b>Complain together</b><span>The whole barangay has the problem? Measure for a week with your neighbors and send one letter.</span></span>${I.chev}</a>
       <a class="track-cta" href="#/guide">${I.list}<span><b>Document the problem</b> Check it isn't your pipes, then keep records</span>${I.chev}</a>
       <p class="section-label">All rules</p>
@@ -802,6 +805,7 @@
     });
     const asks = [...new Set(issues.map(r => r.ask).filter(Boolean))];
     if (jvOp() && issues.some(r => r.id === 'hours' || r.id === 'pressure')) asks.push(`Send me the district's latest joint venture compliance report, showing ${jvOp().replace(/ \(.*\)$/, '')}'s targets and results for hours of supply and water pressure, and the action the district has taken where targets were missed.`);
+    if (isMCWD()) asks.push('Send me a copy of the joint venture agreement with PrimeWater, or at least its Section 5 service obligations and the agreed targets, and tell me whether the district has issued a notice to cure or forfeited any of the performance bond.');
     const date = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
     return `${date}
 
@@ -1064,7 +1068,7 @@ Contact: [phone or email]`;
   // Who the letter goes to. The provider comes first: it must act. The others can make it act.
   const TO = {
     provider: () => ({ label: 'Your water provider', name: S.ptype === 'wd' && wd() ? `The General Manager and the Board of Directors, ${wd().n}` : providerName(),
-      ask: ['Inspect the supply to our barangay and explain the cause in writing.', 'Give us a written plan, with dates, to restore adequate hours of supply, pressure and water quality.', 'Share the supply hours and pressure readings you record for our barangay.', 'Meet with residents at the barangay hall.'] }),
+      ask: ['Inspect the supply to our barangay and explain the cause in writing.', 'Give us a written plan, with dates, to restore adequate hours of supply, pressure and water quality.', 'Share the supply hours and pressure readings you record for our barangay.'].concat(isMCWD() ? ['Issue PrimeWater a written notice to cure its failure to provide "continuous water supply to all connected consumers", a service obligation in Section 5 of the joint venture agreement, and use the penalty in Sections 5.1.9 and 5.3.3 if it is not cured within 60 days.', 'Give us a copy of the joint venture agreement, or at least its service obligations and targets.'] : [], ['Meet with residents at the barangay hall.']) }),
     barangay: () => ({ label: 'Barangay captain and council', name: `The Punong Barangay and the Sangguniang Barangay, ${S.brgy ? bLabel(S.brgy) : 'our barangay'}`,
       ask: [`Pass a resolution endorsing this complaint and asking ${providerName()} to restore adequate service and report back by a set date.`, 'Refer this complaint to the city or municipal council.'] }),
     council: () => { const m = muni(); return { label: 'City or municipal council', name: /city/i.test(m.n) ? `The Sangguniang Panlungsod of ${m.n.replace(/^City of /, '')}` : `The Sangguniang Bayan of ${m.n}`,
@@ -1306,6 +1310,11 @@ Signatures attached.${cc.length ? `\n\nCopy furnished:\n${cc.map(c => '- ' + c).
       <div class="box"><h3>What households report</h3><p class="count">Complaints logged by the operator, by type.</p>
       <div class="bars">${M.complaints.rows.map(r => `<div class="bar-row"><span>${r.y}</span><div class="bar" style="width:${Math.round(r.total / max * 100)}%" role="img" aria-label="${r.y}: ${fmtN(r.total)} complaints"><span class="s-nowater" style="width:${r.nowater * 100}%"></span><span class="s-pressure" style="width:${r.pressure * 100}%"></span><span class="s-quality" style="width:${r.quality * 100}%"></span></div><b>${fmtN(r.total)}</b></div>`).join('')}</div>
       <div class="legend"><span><i class="s-nowater"></i>No water</span><span><i class="s-pressure"></i>Low pressure</span><span><i class="s-quality"></i>Quality</span></div><p class="count" style="margin-top:8px">${esc(M.complaints.cite)}</p></div></div>
+      <h2>What the contract with PrimeWater promises</h2>
+      <p>Signed ${esc(fmtDate(M.jva.signed))}, in effect since ${esc(fmtDate(M.jva.effective))}. Section 5 lists seven service obligations:</p>
+      <ol>${M.jva.obligations.map(o => `<li>${o === 'Continuous water supply to all connected consumers' ? `<b>${esc(o)}</b>` : esc(o)}</li>`).join('')}</ol>
+      <p>${esc(M.jva.kpiGap)} ${esc(M.jva.penalty)}</p>
+      <p class="count">${esc(M.jva.notPublic)} <a href="${esc(M.jva.notPublicUrl)}" target="_blank" rel="noopener">Source</a>. Terms: ${esc(M.jva.cite)}.</p>
       <h2>What the state auditor found</h2><ul>${M.findings.map(f => `<li style="margin-bottom:8px">${esc(f)}</li>`).join('')}</ul>`;
   }
   function pageAbout() {
