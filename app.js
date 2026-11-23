@@ -103,7 +103,7 @@
      rivers and place names, built for BahaWatch from OpenStreetMap, Open Buildings and PSA/NAMRIA outlines), so nothing
      outside the country is drawn. Without WebGL, or if it fails to load, the Leaflet + OpenStreetMap map is used. */
   const PH = [[5.0, 117.0], [19.4, 126.6]];
-  const pad = () => isDesk() ? { paddingTopLeft: [452, 80], paddingBottomRight: [40, 40] } : { paddingTopLeft: [20, 70], paddingBottomRight: [64, sheetPx() + 20] };
+  const pad = () => isDesk() ? { paddingTopLeft: [452, 80], paddingBottomRight: [40, 40] } : { paddingTopLeft: [20, 70], paddingBottomRight: [64, Math.min(sheetPx() + 20, innerHeight - 190)] };
   const padBox = () => { const p = pad(); return { top: p.paddingTopLeft[1], left: p.paddingTopLeft[0], bottom: p.paddingBottomRight[1], right: p.paddingBottomRight[0] }; };
   const pinR = exact => exact ? 700 : 2500;
   const MAP = {
